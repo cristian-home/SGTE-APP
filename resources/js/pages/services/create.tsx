@@ -15,6 +15,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
+import { scrollToFirstError } from '@/lib/scroll-to-first-error';
 import services from '@/routes/services';
 import { type BreadcrumbItem } from '@/types';
 
@@ -86,10 +87,10 @@ export default function ServicesCreate({
 
     function submit(e: React.FormEvent) {
         e.preventDefault();
-        post(ServiceController.store().url);
+        // The Save button stays enabled; on a validation error we surface the
+        // inline messages and bring the first offending field into view.
+        post(ServiceController.store().url, { onError: scrollToFirstError });
     }
-
-    const [addressCommitInFlight, setAddressCommitInFlight] = useState(false);
 
     // BUG-10 — show warning + reveal justification when the picked service
     // date is on an EJECUTADO day. Backend (BUG-03 fix) requires Admin or
@@ -135,7 +136,6 @@ export default function ServicesCreate({
                         contracts={contracts}
                         municipalities={municipalities}
                         mode="create"
-                        onAddressCommitInFlight={setAddressCommitInFlight}
                         onCreateContractClick={
                             canCascadeContract
                                 ? () => setContractDialogOpen(true)
@@ -180,7 +180,6 @@ export default function ServicesCreate({
                             type="submit"
                             disabled={
                                 processing ||
-                                addressCommitInFlight ||
                                 (isExecutedDay && !canBypassExecutedDay)
                             }
                         >

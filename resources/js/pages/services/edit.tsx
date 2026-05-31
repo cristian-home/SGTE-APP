@@ -1,5 +1,4 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { useState } from 'react';
 import ServiceController from '@/actions/App/Http/Controllers/ServiceController';
 import { type MunicipalityOption } from '@/components/municipality-combobox';
 import ServiceForm, {
@@ -9,6 +8,7 @@ import ServiceForm, {
 } from '@/components/services/service-form';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
+import { scrollToFirstError } from '@/lib/scroll-to-first-error';
 import services from '@/routes/services';
 import { type BreadcrumbItem } from '@/types';
 import type { DayStatus } from '@/types/models';
@@ -111,10 +111,12 @@ export default function ServicesEdit({
 
     function submit(e: React.FormEvent) {
         e.preventDefault();
-        put(ServiceController.update(service.id).url);
+        // The Update button stays enabled; on a validation error we surface
+        // the inline messages and bring the first offending field into view.
+        put(ServiceController.update(service.id).url, {
+            onError: scrollToFirstError,
+        });
     }
-
-    const [addressCommitInFlight, setAddressCommitInFlight] = useState(false);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -135,15 +137,11 @@ export default function ServicesEdit({
                         dayStatus={dayStatus}
                         canEditExecuted={canEditExecuted}
                         isAdmin={isAdmin}
-                        onAddressCommitInFlight={setAddressCommitInFlight}
                     />
 
                     {!isFullyLocked && (
                         <div className="flex items-center gap-4">
-                            <Button
-                                type="submit"
-                                disabled={processing || addressCommitInFlight}
-                            >
+                            <Button type="submit" disabled={processing}>
                                 Actualizar
                             </Button>
                             <Link href={services.index().url}>
