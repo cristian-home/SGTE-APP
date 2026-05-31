@@ -66,6 +66,18 @@ class FuecPreGenerationChecks
             return;
         }
 
+        // The FUEC is a legal transport authorization: it must state the
+        // origin and destination cities. Block generation when either is
+        // missing (covers legacy services created before cities were
+        // required).
+        if (! $service->origin_municipality_id) {
+            $validator->errors()->add('fuec_pre_generation.location', 'El servicio no tiene ciudad de origen; el FUEC la requiere.');
+        }
+
+        if (! $service->destination_municipality_id) {
+            $validator->errors()->add('fuec_pre_generation.location', 'El servicio no tiene ciudad de destino; el FUEC la requiere.');
+        }
+
         $today = Carbon::now((string) config('app.operation_tz'));
 
         if ($error = ServiceDocumentChecks::contractCoversDate($contract, $today)) {

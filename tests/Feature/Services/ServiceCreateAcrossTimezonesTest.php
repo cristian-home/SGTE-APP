@@ -48,6 +48,8 @@ test('service create persists planned_start_at + service_date_local consistently
             'contract_id' => $contract->id,
             'vehicle_id' => $vehicle->id,
             'driver_id' => $driver->id,
+            'origin_municipality_id' => \App\Models\Municipality::factory()->create()->id,
+            'destination_municipality_id' => \App\Models\Municipality::factory()->create()->id,
             'planned_start' => '2026-06-24 14:30',
             'timezone' => 'America/Bogota',
             'planned_duration' => 60,

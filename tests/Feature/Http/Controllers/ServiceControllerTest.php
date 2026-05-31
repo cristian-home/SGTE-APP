@@ -260,6 +260,7 @@ test('update redirects', function (): void {
         'planned_duration' => 60,
     ]);
     $origin_municipality = \App\Models\Municipality::factory()->create();
+    $destination_municipality = \App\Models\Municipality::factory()->create();
     $origin_address = fake()->streetAddress();
     $unit_value = fake()->randomFloat(2, 50000, 500000);
 
@@ -268,6 +269,7 @@ test('update redirects', function (): void {
         'vehicle_id' => $vehicle->id,
         'driver_id' => $driver->id,
         'origin_municipality_id' => $origin_municipality->id,
+        'destination_municipality_id' => $destination_municipality->id,
         'origin_address' => $origin_address,
         // address ↔ coords are required together (see ServiceStoreRequest).
         'origin_coordinates' => '4.5816950,-74.1784720',
@@ -444,6 +446,8 @@ test('store fails when contract is inactive', function (): void {
         'contract_id' => $contract->id,
         'vehicle_id' => $vehicle->id,
         'driver_id' => $driver->id,
+        'origin_municipality_id' => \App\Models\Municipality::factory()->create()->id,
+        'destination_municipality_id' => \App\Models\Municipality::factory()->create()->id,
         'planned_start' => Carbon::now()->toDateString().' 08:00',
         'planned_duration' => 60,
         'unit_value' => 100000,
@@ -468,6 +472,8 @@ test('store fails when contract date range does not cover service_date', functio
         'contract_id' => $contract->id,
         'vehicle_id' => $vehicle->id,
         'driver_id' => $driver->id,
+        'origin_municipality_id' => \App\Models\Municipality::factory()->create()->id,
+        'destination_municipality_id' => \App\Models\Municipality::factory()->create()->id,
         'planned_start' => Carbon::now()->toDateString().' 08:00',
         'planned_duration' => 60,
         'unit_value' => 100000,
