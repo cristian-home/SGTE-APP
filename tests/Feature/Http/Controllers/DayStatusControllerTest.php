@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Http\Controllers;
 
+use App\Enums\DayStatusEnum;
 use App\Models\DayStatus;
 use App\Models\User;
 use Illuminate\Support\Carbon;
@@ -86,11 +87,18 @@ test('update uses form request validation')
     );
 
 test('update redirects', function (): void {
-    $dayStatus = DayStatus::factory()->create();
-    $date = Carbon::parse(fake()->date());
-    $status = fake()->randomElement(['projected', 'executed']);
+    // Deterministic forward transition (projected → executed). Using random
+    // factory status + random target status was a coin-flip flake: when it
+    // landed on executed → projected, the request's reversal rule requires a
+    // justification (not sent here) and the controller clears the executor,
+    // so the persistence assertions failed ~25% of runs.
+    $dayStatus = DayStatus::factory()->create([
+        'status' => DayStatusEnum::Projected,
+    ]);
+    $date = Carbon::parse('2026-03-15');
+    $status = DayStatusEnum::Executed->value;
     $executor = User::factory()->create();
-    $executed_at = Carbon::parse(fake()->dateTime());
+    $executed_at = Carbon::parse('2026-03-15 14:30:00');
 
     $response = put(route('day-statuses.update', $dayStatus), [
         'date' => $date,
