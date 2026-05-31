@@ -56,6 +56,29 @@ class ServiceFactory extends Factory
     }
 
     /**
+     * Model a legacy/location-less service (no origin/destination). Cities
+     * are required on new services, so this state exists to exercise the
+     * FUEC location gate and graceful-degradation paths.
+     */
+    public function withoutLocation(): static
+    {
+        return $this->state(fn (): array => [
+            'origin_municipality_id' => null,
+            'origin_address' => null,
+            'origin_coordinates' => null,
+            'origin_coordinates_source' => null,
+            'origin_coordinates_accuracy' => null,
+            'origin_place_id' => null,
+            'destination_municipality_id' => null,
+            'destination_address' => null,
+            'destination_coordinates' => null,
+            'destination_coordinates_source' => null,
+            'destination_coordinates_accuracy' => null,
+            'destination_place_id' => null,
+        ]);
+    }
+
+    /**
      * Define the model's default state.
      */
     public function definition(): array
@@ -81,18 +104,13 @@ class ServiceFactory extends Factory
             : null;
 
         // Origin / destination: pick two random landmarks from the curated
-        // list. Each one already brings (address, coords, source,
-        // accuracy, place_id)
-        // matching what a real operator would persist via the address
-        // autocomplete or the manual pin picker. ~10% of services land
-        // without an origin and ~10% without a destination, mirroring
-        // ad-hoc operations where the location is not known up front.
-        $originSeed = fake()->boolean(90)
-            ? RealColombianAddresses::random()
-            : null;
-        $destinationSeed = fake()->boolean(90)
-            ? RealColombianAddresses::random()
-            : null;
+        // list. Each one already brings (address, coords, source, accuracy,
+        // place_id) matching what a real operator would persist via the
+        // address autocomplete or the manual pin picker. The city is now
+        // required on every service, so both sides always get a location;
+        // use the withoutLocation() state to model legacy/location-less rows.
+        $originSeed = RealColombianAddresses::random();
+        $destinationSeed = RealColombianAddresses::random();
 
         return [
             'contract_id' => Contract::inRandomOrder()->first()->id ?? Contract::factory(),
@@ -100,25 +118,16 @@ class ServiceFactory extends Factory
             'driver_id' => Driver::inRandomOrder()->first()->id ?? Driver::factory(),
             'invoice_id' => null,
             'service_date_local' => $day,
-            // When a side has no seed (~10% of factories model an
-            // ad-hoc operation without a known location), null *both*
-            // the municipality and the coordinate columns together so
-            // the invariant "municipality → coords" holds: either both
-            // are filled or both are null.
-            'origin_municipality_id' => $originSeed
-                ? self::resolveMunicipalityId($originSeed['municipality_code'])
-                : null,
-            'origin_address' => $originSeed['address'] ?? null,
-            'origin_coordinates' => $originSeed['coordinates'] ?? null,
-            'origin_coordinates_source' => $originSeed['source'] ?? null,
+            'origin_municipality_id' => self::resolveMunicipalityId($originSeed['municipality_code']),
+            'origin_address' => $originSeed['address'],
+            'origin_coordinates' => $originSeed['coordinates'],
+            'origin_coordinates_source' => $originSeed['source'],
             'origin_coordinates_accuracy' => $originSeed['accuracy'] ?? null,
             'origin_place_id' => $originSeed['place_id'] ?? null,
-            'destination_municipality_id' => $destinationSeed
-                ? self::resolveMunicipalityId($destinationSeed['municipality_code'])
-                : null,
-            'destination_address' => $destinationSeed['address'] ?? null,
-            'destination_coordinates' => $destinationSeed['coordinates'] ?? null,
-            'destination_coordinates_source' => $destinationSeed['source'] ?? null,
+            'destination_municipality_id' => self::resolveMunicipalityId($destinationSeed['municipality_code']),
+            'destination_address' => $destinationSeed['address'],
+            'destination_coordinates' => $destinationSeed['coordinates'],
+            'destination_coordinates_source' => $destinationSeed['source'],
             'destination_coordinates_accuracy' => $destinationSeed['accuracy'] ?? null,
             'destination_place_id' => $destinationSeed['place_id'] ?? null,
             'planned_start_at' => $plannedStartUtc,

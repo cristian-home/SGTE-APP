@@ -27,6 +27,8 @@ test('store succeeds without driver_id when vehicle is third-party', function ()
     $response = post(route('services.store'), [
         'contract_id' => $this->contract->id,
         'vehicle_id' => $vehicle->id,
+        'origin_municipality_id' => \App\Models\Municipality::factory()->create()->id,
+        'destination_municipality_id' => \App\Models\Municipality::factory()->create()->id,
         'planned_start' => Carbon::now()->toDateString().' 08:00',
         'planned_duration' => 60,
         'unit_value' => 100000,
@@ -45,6 +47,8 @@ test('store fails without driver_id when vehicle is NOT third-party', function (
     $response = post(route('services.store'), [
         'contract_id' => $this->contract->id,
         'vehicle_id' => $vehicle->id,
+        'origin_municipality_id' => \App\Models\Municipality::factory()->create()->id,
+        'destination_municipality_id' => \App\Models\Municipality::factory()->create()->id,
         'planned_start' => Carbon::now()->toDateString().' 08:00',
         'planned_duration' => 60,
         'unit_value' => 100000,
@@ -64,6 +68,8 @@ test('store sets driver_id to null when vehicle is third-party even if driver_id
         'contract_id' => $this->contract->id,
         'vehicle_id' => $vehicle->id,
         'driver_id' => $driver->id,
+        'origin_municipality_id' => \App\Models\Municipality::factory()->create()->id,
+        'destination_municipality_id' => \App\Models\Municipality::factory()->create()->id,
         'planned_start' => Carbon::now()->toDateString().' 08:00',
         'planned_duration' => 60,
         'unit_value' => 100000,

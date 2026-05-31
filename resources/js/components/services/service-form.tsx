@@ -586,9 +586,22 @@ export default function ServiceForm({
         (data.destination_address.trim().length > 0 &&
             !data.destination_coordinates);
 
+    // The origin/destination city is required (the precise address/pin is
+    // optional — the backend fills the city centroid when omitted). Block
+    // Save until both cities are picked, mirroring the backend rule.
+    const cityMissing =
+        !data.origin_municipality_id || !data.destination_municipality_id;
+
     useEffect(() => {
-        onAddressCommitInFlight?.(commitCount > 0 || addressNeedsConfirmation);
-    }, [commitCount, addressNeedsConfirmation, onAddressCommitInFlight]);
+        onAddressCommitInFlight?.(
+            commitCount > 0 || addressNeedsConfirmation || cityMissing,
+        );
+    }, [
+        commitCount,
+        addressNeedsConfirmation,
+        cityMissing,
+        onAddressCommitInFlight,
+    ]);
 
     const filteredContracts = useMemo(() => {
         // The service date is now derived from the planned-start datetime
@@ -1301,7 +1314,7 @@ export default function ServiceForm({
                                 invalid('origin_address')
                             }
                         >
-                            <Label htmlFor="origin_address">Origen</Label>
+                            <Label htmlFor="origin_address">Origen *</Label>
                             <LocationField
                                 id="origin_address"
                                 name="origin_address"
@@ -1362,7 +1375,13 @@ export default function ServiceForm({
                                     errors.origin_address ||
                                     errors.origin_coordinates
                                 }
-                            />
+                            >
+                                {data.origin_municipality_id &&
+                                !data.origin_address.trim() &&
+                                !data.origin_coordinates
+                                    ? 'Se usará el centro de la ciudad como ubicación.'
+                                    : null}
+                            </FieldFooter>
                             <MapPickerModal
                                 instanceLabel="origin"
                                 open={originPickerOpen}
@@ -1425,7 +1444,9 @@ export default function ServiceForm({
                                 invalid('destination_address')
                             }
                         >
-                            <Label htmlFor="destination_address">Destino</Label>
+                            <Label htmlFor="destination_address">
+                                Destino *
+                            </Label>
                             <LocationField
                                 id="destination_address"
                                 name="destination_address"
@@ -1490,7 +1511,13 @@ export default function ServiceForm({
                                     errors.destination_address ||
                                     errors.destination_coordinates
                                 }
-                            />
+                            >
+                                {data.destination_municipality_id &&
+                                !data.destination_address.trim() &&
+                                !data.destination_coordinates
+                                    ? 'Se usará el centro de la ciudad como ubicación.'
+                                    : null}
+                            </FieldFooter>
                             <MapPickerModal
                                 instanceLabel="destination"
                                 open={destinationPickerOpen}

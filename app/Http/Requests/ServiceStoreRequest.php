@@ -78,21 +78,26 @@ class ServiceStoreRequest extends FormRequest
             // Ordering (end after start) is enforced in after() against the
             // visible `planned_end` field so the error renders on the picker.
             'planned_end_at' => ['required', 'date'],
-            'origin_municipality_id' => ['nullable', 'integer', 'exists:municipalities,id'],
+            // The city (municipality) is required on both ends — it is the
+            // legally/operationally meaningful minimum (FUEC, reports). The
+            // precise address + coordinates stay optional: when only the city
+            // is given, prepareForValidation() fills the coordinates from the
+            // municipality centroid (source 'centroid').
+            'origin_municipality_id' => ['required', 'integer', 'exists:municipalities,id'],
             'origin_address' => ['nullable', 'string', 'max:255'],
             // When the operator fills the address text, they must also
-            // confirm the location — by picking a Google Places
-            // suggestion or by placing a pin on the map. We refuse to
-            // persist a free-text-only address because it has no usable
-            // geographic meaning for FUEC, GPS, or driver navigation.
-            'origin_coordinates' => ['required_with:origin_address,origin_municipality_id', 'nullable', 'string', 'max:50', 'regex:/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/'],
-            'origin_coordinates_source' => ['required_with:origin_address,origin_municipality_id', 'nullable', Rule::in(['google', 'manual'])],
+            // confirm the location — by picking a Google Places suggestion
+            // or by placing a pin on the map. A city alone needs no pin
+            // (the centroid is used). We refuse to persist a free-text-only
+            // address because it has no usable geographic meaning.
+            'origin_coordinates' => ['required_with:origin_address', 'nullable', 'string', 'max:50', 'regex:/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/'],
+            'origin_coordinates_source' => ['required_with:origin_address', 'nullable', Rule::in(['google', 'manual', 'centroid'])],
             'origin_coordinates_accuracy' => ['nullable', 'string', 'max:20'],
             'origin_place_id' => ['nullable', 'string', 'max:255'],
-            'destination_municipality_id' => ['nullable', 'integer', 'exists:municipalities,id'],
+            'destination_municipality_id' => ['required', 'integer', 'exists:municipalities,id'],
             'destination_address' => ['nullable', 'string', 'max:255'],
-            'destination_coordinates' => ['required_with:destination_address,destination_municipality_id', 'nullable', 'string', 'max:50', 'regex:/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/'],
-            'destination_coordinates_source' => ['required_with:destination_address,destination_municipality_id', 'nullable', Rule::in(['google', 'manual'])],
+            'destination_coordinates' => ['required_with:destination_address', 'nullable', 'string', 'max:50', 'regex:/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/'],
+            'destination_coordinates_source' => ['required_with:destination_address', 'nullable', Rule::in(['google', 'manual', 'centroid'])],
             'destination_coordinates_accuracy' => ['nullable', 'string', 'max:20'],
             'destination_place_id' => ['nullable', 'string', 'max:255'],
             // Input-only convenience (minutes): when `planned_end` is omitted,
@@ -616,7 +621,42 @@ class ServiceStoreRequest extends FormRequest
 
         $this->mergeActualInstants($timezone);
 
+        $this->mergeCentroidFallback();
+
         $this->mergeNormalizedBillingGroups();
+    }
+
+    /**
+     * City-only fallback: when a side has a municipality but no precise
+     * location (no address and no coordinates), fill the coordinates from
+     * the municipality centroid and tag the source as 'centroid'. This keeps
+     * the "municipality ⇒ coordinates" invariant satisfied without forcing
+     * the operator to drop a pin. Sides where the operator typed an address
+     * are left untouched (the required_with rule still demands a real pin).
+     */
+    protected function mergeCentroidFallback(): void
+    {
+        foreach (['origin', 'destination'] as $side) {
+            $municipalityId = $this->input("{$side}_municipality_id");
+            $address = trim((string) $this->input("{$side}_address"));
+            $coordinates = trim((string) $this->input("{$side}_coordinates"));
+
+            if (! is_numeric($municipalityId) || $address !== '' || $coordinates !== '') {
+                continue;
+            }
+
+            $municipality = \App\Models\Municipality::find($municipalityId);
+            if (! $municipality || $municipality->latitude === null || $municipality->longitude === null) {
+                continue;
+            }
+
+            $this->merge([
+                "{$side}_coordinates" => "{$municipality->latitude},{$municipality->longitude}",
+                "{$side}_coordinates_source" => 'centroid',
+                "{$side}_coordinates_accuracy" => null,
+                "{$side}_place_id" => null,
+            ]);
+        }
     }
 
     /**
