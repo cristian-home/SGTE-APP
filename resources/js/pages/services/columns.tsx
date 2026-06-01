@@ -7,7 +7,6 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Permission } from '@/enums/Permission';
 import {
-    formatEventDate,
     formatEventDateTime,
     formatTimestampInViewerTz,
 } from '@/lib/datetime';
@@ -52,25 +51,6 @@ export const columns: ColumnDef<Service, unknown>[] = [
                 className="font-mono text-primary tabular-nums hover:underline"
             >
                 {row.original.service_number}
-            </Link>
-        ),
-    },
-    {
-        accessorKey: 'service_date_local',
-        meta: { label: 'Fecha' },
-        header: ({ column }) => (
-            <DataTableColumnHeader column={column} title="Fecha" />
-        ),
-        cell: ({ row }) => (
-            <Link
-                href={services.show(row.original.id).url}
-                className="text-primary hover:underline"
-            >
-                {formatEventDate(
-                    row.original.planned_start_at,
-                    row.original.timezone,
-                    { dateStyle: 'medium' },
-                )}
             </Link>
         ),
     },
