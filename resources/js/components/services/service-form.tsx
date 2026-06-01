@@ -53,7 +53,6 @@ import {
 } from '@/components/ui/tooltip';
 import { PaymentMethod, PaymentMethodLabel } from '@/enums/PaymentMethod';
 import { ServiceStatus, ServiceStatusLabel } from '@/enums/ServiceStatus';
-import { type VehicleType, VehicleTypeLabel } from '@/enums/VehicleType';
 import { dateToWallClock, viewerToday, wallClockToDate } from '@/lib/datetime';
 import { GOOGLE_MAPS_BROWSER_KEY } from '@/lib/google-maps';
 import { normalizeCity } from '@/lib/normalize-city';
@@ -63,8 +62,8 @@ import type { DayStatus } from '@/types/models';
 export interface VehicleOption {
     id: number;
     plate: string;
-    /** Serialized VehicleType enum value ('bus' | 'buseta' | 'microbus' | 'van' | 'automobile'). Null for legacy rows without a type. */
-    type: VehicleType | null;
+    /** Vehicle type from the vehicle_types catalog (eager-loaded). */
+    vehicle_type?: { id: number; code: string; name: string } | null;
     is_third_party: boolean;
     third_party_id: number | null;
     third_party?: ThirdPartyOption | null;
@@ -1133,16 +1132,16 @@ export default function ServiceForm({
                                 }}
                                 getKey={(v) => String(v.id)}
                                 getSearchText={(v) =>
-                                    `${v.plate} ${v.type ? VehicleTypeLabel[v.type] : ''} ${v.third_party ? thirdPartyLabel(v.third_party) : ''}`
+                                    `${v.plate} ${v.vehicle_type?.name ?? ''} ${v.third_party ? thirdPartyLabel(v.third_party) : ''}`
                                 }
                                 renderTrigger={(v) => (
                                     <span className="flex min-w-0 items-center gap-2">
                                         <span className="font-mono">
                                             {v.plate}
                                         </span>
-                                        {v.type && (
+                                        {v.vehicle_type && (
                                             <span className="truncate text-xs text-muted-foreground">
-                                                · {VehicleTypeLabel[v.type]}
+                                                · {v.vehicle_type.name}
                                             </span>
                                         )}
                                         {v.is_third_party && (
@@ -1161,12 +1160,12 @@ export default function ServiceForm({
                                             <span className="font-mono">
                                                 {v.plate}
                                             </span>
-                                            {v.type && (
+                                            {v.vehicle_type && (
                                                 <Badge
                                                     variant="outline"
                                                     className="font-normal"
                                                 >
-                                                    {VehicleTypeLabel[v.type]}
+                                                    {v.vehicle_type.name}
                                                 </Badge>
                                             )}
                                             {v.is_third_party && (

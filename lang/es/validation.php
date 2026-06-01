@@ -423,6 +423,8 @@ return [
         'unit_value' => 'valor unitario',
         'vehicle_id' => 'vehículo',
         'vehicle_type_id' => 'tipo de vehículo',
+        'allowed_license_categories' => 'categorías de licencia permitidas',
+        'sort_order' => 'orden',
     ],
 
 ];

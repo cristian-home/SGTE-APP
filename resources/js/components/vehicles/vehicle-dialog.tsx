@@ -15,6 +15,7 @@ import {
 import VehicleForm, {
     type ThirdPartyOption,
     type VehicleFormData,
+    type VehicleTypeOption,
 } from '@/components/vehicles/vehicle-form';
 import type { Vehicle } from '@/types/models';
 
@@ -28,7 +29,7 @@ export type EditableVehicle = Pick<
     | 'brand'
     | 'line'
     | 'model_year'
-    | 'type'
+    | 'vehicle_type_id'
     | 'engine_number'
     | 'chassis_number'
     | 'capacity'
@@ -48,6 +49,7 @@ interface VehicleDialogProps {
     vehicle?: EditableVehicle | null;
     municipalities: MunicipalityOption[];
     thirdParties: ThirdPartyOption[];
+    vehicleTypes: VehicleTypeOption[];
     /**
      * Next sequential internal code (e.g. "V-006") suggested by the
      * backend; pre-filled in the form on create. The user may overwrite
@@ -63,7 +65,7 @@ const emptyData: VehicleFormData = {
     brand: '',
     line: '',
     model_year: '',
-    type: '',
+    vehicle_type_id: '',
     engine_number: '',
     chassis_number: '',
     capacity: '',
@@ -84,7 +86,7 @@ function dataFromVehicle(vehicle: EditableVehicle): VehicleFormData {
         brand: vehicle.brand,
         line: vehicle.line,
         model_year: String(vehicle.model_year),
-        type: vehicle.type,
+        vehicle_type_id: String(vehicle.vehicle_type_id),
         engine_number: vehicle.engine_number ?? '',
         chassis_number: vehicle.chassis_number ?? '',
         capacity: String(vehicle.capacity),
@@ -109,6 +111,7 @@ export default function VehicleDialog({
     vehicle,
     municipalities,
     thirdParties,
+    vehicleTypes,
     suggestedInternalCode,
 }: VehicleDialogProps) {
     const { data, setData, post, put, processing, errors, clearErrors } =
@@ -178,6 +181,7 @@ export default function VehicleDialog({
                             errors={errors}
                             municipalities={municipalities}
                             thirdParties={thirdParties}
+                            vehicleTypes={vehicleTypes}
                             idPrefix="dlg"
                         />
                     </div>

@@ -12,9 +12,9 @@ export const Role = {
 export type Role = (typeof Role)[keyof typeof Role];
 
 export const RoleLabel: Record<Role, string> = {
-    super_admin: 'Super Administrador',
-    admin: 'Administrador',
-    operator: 'Operación',
-    driver: 'Conductor',
-    accounting: 'Contabilidad',
+    'super_admin': 'Super Administrador',
+    'admin': 'Administrador',
+    'operator': 'Operación',
+    'driver': 'Conductor',
+    'accounting': 'Contabilidad',
 };

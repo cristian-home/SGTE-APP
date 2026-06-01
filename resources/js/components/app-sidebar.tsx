@@ -34,6 +34,7 @@ import { index as thirdPartiesIndex } from '@/actions/App/Http/Controllers/Third
 import { index as usersIndex } from '@/actions/App/Http/Controllers/UserController';
 import { index as vehiclesIndex } from '@/actions/App/Http/Controllers/VehicleController';
 import { index as vehicleLocationsIndex } from '@/actions/App/Http/Controllers/VehicleLocationController';
+import { index as vehicleTypesIndex } from '@/actions/App/Http/Controllers/VehicleTypeController';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
@@ -239,6 +240,11 @@ const navGroups: NavGroup[] = [
                 title: 'Tipos de Novedad',
                 href: incidentTypesIndex(),
                 permission: Permission.VIEW_INCIDENT_TYPES,
+            },
+            {
+                title: 'Tipos de Vehículo',
+                href: vehicleTypesIndex(),
+                permission: Permission.VIEW_VEHICLE_TYPES,
             },
         ],
     },

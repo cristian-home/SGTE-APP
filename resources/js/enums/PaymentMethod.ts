@@ -10,7 +10,7 @@ export const PaymentMethod = {
 export type PaymentMethod = (typeof PaymentMethod)[keyof typeof PaymentMethod];
 
 export const PaymentMethodLabel: Record<PaymentMethod, string> = {
-    cash: 'Efectivo',
-    credit: 'Crédito',
-    transfer: 'Transferencia',
+    'cash': 'Efectivo',
+    'credit': 'Crédito',
+    'transfer': 'Transferencia',
 };

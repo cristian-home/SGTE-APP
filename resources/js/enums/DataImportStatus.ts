@@ -8,12 +8,11 @@ export const DataImportStatus = {
     Failed: 'failed',
 } as const;
 
-export type DataImportStatus =
-    (typeof DataImportStatus)[keyof typeof DataImportStatus];
+export type DataImportStatus = (typeof DataImportStatus)[keyof typeof DataImportStatus];
 
 export const DataImportStatusLabel: Record<DataImportStatus, string> = {
-    queued: 'En cola',
-    processing: 'Procesando',
-    completed: 'Completado',
-    failed: 'Falló',
+    'queued': 'En cola',
+    'processing': 'Procesando',
+    'completed': 'Completado',
+    'failed': 'Falló',
 };

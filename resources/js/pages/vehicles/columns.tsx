@@ -8,7 +8,6 @@ import { Badge } from '@/components/ui/badge';
 import { type EditableVehicle } from '@/components/vehicles/vehicle-dialog';
 import { VehicleDocumentPills } from '@/components/vehicles/vehicle-document-pills';
 import { Permission } from '@/enums/Permission';
-import { type VehicleType, VehicleTypeLabel } from '@/enums/VehicleType';
 import vehicles from '@/routes/vehicles';
 
 import type { ColumnDef, Table } from '@tanstack/react-table';
@@ -88,9 +87,7 @@ export const columns: ColumnDef<Vehicle, unknown>[] = [
         accessorKey: 'type',
         meta: { label: 'Tipo' },
         header: 'Tipo',
-        cell: ({ row }) =>
-            VehicleTypeLabel[row.original.type as VehicleType] ??
-            row.original.type,
+        cell: ({ row }) => row.original.vehicle_type?.name ?? '—',
     },
     {
         id: 'propietario',

@@ -16,4 +16,3 @@ export * from './PermissionGroup';
 export * from './Role';
 export * from './ServiceStatus';
 export * from './VehicleStatus';
-export * from './VehicleType';

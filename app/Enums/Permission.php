@@ -82,6 +82,12 @@ enum Permission: string
     case UPDATE_INCIDENT_TYPES = 'incident-types.update';
     case DELETE_INCIDENT_TYPES = 'incident-types.delete';
 
+    // Vehicle Types (catalog)
+    case VIEW_VEHICLE_TYPES = 'vehicle-types.view';
+    case CREATE_VEHICLE_TYPES = 'vehicle-types.create';
+    case UPDATE_VEHICLE_TYPES = 'vehicle-types.update';
+    case DELETE_VEHICLE_TYPES = 'vehicle-types.delete';
+
     // Static Catalogs (document types, EPS, pension funds, severance funds)
     case MANAGE_CATALOGS = 'catalogs.manage';
 
@@ -147,6 +153,10 @@ enum Permission: string
             self::CREATE_INCIDENT_TYPES => 'Crear tipos de novedad',
             self::UPDATE_INCIDENT_TYPES => 'Editar tipos de novedad',
             self::DELETE_INCIDENT_TYPES => 'Eliminar tipos de novedad',
+            self::VIEW_VEHICLE_TYPES => 'Ver tipos de vehículo',
+            self::CREATE_VEHICLE_TYPES => 'Crear tipos de vehículo',
+            self::UPDATE_VEHICLE_TYPES => 'Editar tipos de vehículo',
+            self::DELETE_VEHICLE_TYPES => 'Eliminar tipos de vehículo',
             self::MANAGE_CATALOGS => 'Gestionar catálogos (documentos, EPS, fondos)',
             self::VIEW_AUDIT_LOG => 'Ver registro de auditoría',
             self::MANAGE_DATA_IMPORTS => 'Gestionar importaciones masivas',
@@ -207,6 +217,10 @@ enum Permission: string
             self::CREATE_INCIDENT_TYPES => 'Crear tipos de novedad.',
             self::UPDATE_INCIDENT_TYPES => 'Editar tipos de novedad.',
             self::DELETE_INCIDENT_TYPES => 'Eliminar tipos de novedad.',
+            self::VIEW_VEHICLE_TYPES => 'Consultar tipos de vehículo.',
+            self::CREATE_VEHICLE_TYPES => 'Crear tipos de vehículo.',
+            self::UPDATE_VEHICLE_TYPES => 'Editar tipos de vehículo.',
+            self::DELETE_VEHICLE_TYPES => 'Eliminar tipos de vehículo.',
             self::MANAGE_CATALOGS => 'Gestionar catálogos: documentos, EPS, fondos y ciudades.',
             self::VIEW_AUDIT_LOG => 'Historial de cambios sensibles registrados en el sistema.',
             self::MANAGE_DATA_IMPORTS => 'Cargar archivos masivos de usuarios, conductores, terceros o vehículos.',
@@ -267,6 +281,10 @@ enum Permission: string
             self::CREATE_INCIDENT_TYPES,
             self::UPDATE_INCIDENT_TYPES,
             self::DELETE_INCIDENT_TYPES => PermissionGroup::INCIDENT_TYPES,
+            self::VIEW_VEHICLE_TYPES,
+            self::CREATE_VEHICLE_TYPES,
+            self::UPDATE_VEHICLE_TYPES,
+            self::DELETE_VEHICLE_TYPES => PermissionGroup::VEHICLE_TYPES,
             self::MANAGE_CATALOGS => PermissionGroup::CATALOGS,
             self::VIEW_AUDIT_LOG => PermissionGroup::AUDIT,
             self::MANAGE_DATA_IMPORTS => PermissionGroup::DATA_IMPORTS,

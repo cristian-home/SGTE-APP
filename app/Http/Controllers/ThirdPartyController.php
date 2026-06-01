@@ -105,9 +105,10 @@ class ThirdPartyController extends Controller
         // valid state for either role being false.
         $recentVehicles = Vehicle::query()
             ->where('third_party_id', $thirdParty->id)
+            ->with('vehicleType:id,code,name')
             ->orderByDesc('created_at')
             ->limit(5)
-            ->get(['id', 'plate', 'internal_code', 'type', 'status']);
+            ->get(['id', 'plate', 'internal_code', 'vehicle_type_id', 'status']);
 
         $recentContracts = Contract::query()
             ->where('third_party_id', $thirdParty->id)

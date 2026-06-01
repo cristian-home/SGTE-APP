@@ -8,12 +8,11 @@ export const ContractObject = {
     Occasional: 'occasional',
 } as const;
 
-export type ContractObject =
-    (typeof ContractObject)[keyof typeof ContractObject];
+export type ContractObject = (typeof ContractObject)[keyof typeof ContractObject];
 
 export const ContractObjectLabel: Record<ContractObject, string> = {
-    business: 'Empresarial',
-    tourism: 'Turismo',
-    health: 'Salud',
-    occasional: 'Ocasional',
+    'business': 'Empresarial',
+    'tourism': 'Turismo',
+    'health': 'Salud',
+    'occasional': 'Ocasional',
 };

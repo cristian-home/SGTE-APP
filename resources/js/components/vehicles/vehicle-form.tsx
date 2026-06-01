@@ -21,7 +21,11 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { VehicleType, VehicleTypeLabel } from '@/enums/VehicleType';
+export interface VehicleTypeOption {
+    id: number;
+    code: string;
+    name: string;
+}
 
 const VEHICLE_STATUS_OPTIONS: Array<{
     value: string;
@@ -65,7 +69,7 @@ export interface VehicleFormData {
     brand: string;
     line: string;
     model_year: string;
-    type: string;
+    vehicle_type_id: string;
     engine_number: string;
     chassis_number: string;
     capacity: string;
@@ -98,6 +102,7 @@ interface VehicleFormProps {
     errors: Partial<Record<keyof VehicleFormData, string>>;
     municipalities: MunicipalityOption[];
     thirdParties: ThirdPartyOption[];
+    vehicleTypes: VehicleTypeOption[];
     idPrefix?: string;
 }
 
@@ -107,6 +112,7 @@ export default function VehicleForm({
     errors,
     municipalities,
     thirdParties,
+    vehicleTypes,
     idPrefix = '',
 }: VehicleFormProps) {
     const id = (name: string) => (idPrefix ? `${idPrefix}_${name}` : name);
@@ -215,31 +221,33 @@ export default function VehicleForm({
             <div className="grid gap-4 md:grid-cols-3 md:grid-rows-[auto_1fr_auto]">
                 <div
                     className="group/field grid gap-2 md:row-span-3 md:grid-rows-subgrid"
-                    data-error={invalid('type')}
+                    data-error={invalid('vehicle_type_id')}
                 >
-                    <Label htmlFor={id('type')}>
+                    <Label htmlFor={id('vehicle_type_id')}>
                         Tipo
                         <RequiredMarker />
                     </Label>
                     <Select
-                        value={data.type}
-                        onValueChange={(value) => setData('type', value)}
+                        value={data.vehicle_type_id}
+                        onValueChange={(value) =>
+                            setData('vehicle_type_id', value)
+                        }
                     >
                         <SelectTrigger
-                            id={id('type')}
-                            aria-invalid={invalid('type')}
+                            id={id('vehicle_type_id')}
+                            aria-invalid={invalid('vehicle_type_id')}
                         >
                             <SelectValue placeholder="Seleccionar..." />
                         </SelectTrigger>
                         <SelectContent>
-                            {Object.values(VehicleType).map((value) => (
-                                <SelectItem key={value} value={value}>
-                                    {VehicleTypeLabel[value]}
+                            {vehicleTypes.map((vt) => (
+                                <SelectItem key={vt.id} value={String(vt.id)}>
+                                    {vt.name}
                                 </SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
-                    <FieldFooter error={errors.type} />
+                    <FieldFooter error={errors.vehicle_type_id} />
                 </div>
                 <div
                     className="group/field grid gap-2 md:row-span-3 md:grid-rows-subgrid"

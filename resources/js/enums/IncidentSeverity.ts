@@ -7,11 +7,10 @@ export const IncidentSeverity = {
     Major: 'major',
 } as const;
 
-export type IncidentSeverity =
-    (typeof IncidentSeverity)[keyof typeof IncidentSeverity];
+export type IncidentSeverity = (typeof IncidentSeverity)[keyof typeof IncidentSeverity];
 
 export const IncidentSeverityLabel: Record<IncidentSeverity, string> = {
-    informational: 'Informativo',
-    minor: 'Menor',
-    major: 'Mayor',
+    'informational': 'Informativo',
+    'minor': 'Menor',
+    'major': 'Mayor',
 };
