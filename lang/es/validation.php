@@ -410,6 +410,7 @@ return [
         'service_date_local' => 'fecha del servicio',
         'service_id' => 'servicio',
         'service_ids' => 'servicios',
+        'service_number' => 'consecutivo del servicio',
         'service_status' => 'estado del servicio',
         'severance_fund_id' => 'fondo de cesantías',
         'severity' => 'severidad',
