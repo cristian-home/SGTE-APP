@@ -22,17 +22,39 @@ export function DataTableColumnHeader<TData, TValue>({
         return <div className={cn(className)}>{title}</div>;
     }
 
+    const sorted = column.getIsSorted();
+
+    // Cycle through three states so the sort can be removed: unsorted → asc →
+    // desc → unsorted (back to the table's default order). Clicking only ever
+    // flipping asc⇄desc would trap the user in a sorted state.
+    const cycleSort = () => {
+        if (sorted === false) {
+            column.toggleSorting(false);
+        } else if (sorted === 'asc') {
+            column.toggleSorting(true);
+        } else {
+            column.clearSorting();
+        }
+    };
+
     return (
         <Button
             variant="ghost"
             size="sm"
             className={cn('h-8', className)}
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            onClick={cycleSort}
+            title={
+                sorted === 'asc'
+                    ? 'Ordenado ascendente — clic para descendente'
+                    : sorted === 'desc'
+                      ? 'Ordenado descendente — clic para quitar el orden'
+                      : 'Sin orden — clic para ordenar'
+            }
         >
             {title}
-            {column.getIsSorted() === 'desc' ? (
+            {sorted === 'desc' ? (
                 <ArrowDown className="ml-2 size-4" />
-            ) : column.getIsSorted() === 'asc' ? (
+            ) : sorted === 'asc' ? (
                 <ArrowUp className="ml-2 size-4" />
             ) : (
                 <ArrowUpDown className="ml-2 size-4" />
