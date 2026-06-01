@@ -14,6 +14,7 @@ export interface FuecRow {
     status: string;
     service?: {
         id: number;
+        service_number: string;
         service_date: string | null;
         vehicle?: { id: number; plate: string } | null;
         driver?: {
@@ -81,7 +82,10 @@ export const fuecColumns: ColumnDef<FuecRow, unknown>[] = [
                     href={`/services/${service.id}`}
                     className="text-primary hover:underline"
                 >
-                    {date}
+                    <span className="font-mono">{service.service_number}</span>
+                    <span className="ml-1 text-xs text-muted-foreground">
+                        {date}
+                    </span>
                 </Link>
             );
         },

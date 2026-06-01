@@ -55,16 +55,17 @@ test('retroactive gate fires only on service_date_local < today_in_op_tz', funct
             'contract_id' => $contract->id,
             'vehicle_id' => $vehicle->id,
             'driver_id' => $driver->id,
-            'service_date' => '2026-04-23',
-            'planned_start_time' => '14:30',
+            'origin_municipality_id' => \App\Models\Municipality::factory()->create()->id,
+            'destination_municipality_id' => \App\Models\Municipality::factory()->create()->id,
+            'planned_start' => '2026-04-23 14:30',
             'timezone' => 'UTC',
             'planned_duration' => 60,
             'unit_value' => 100000,
             'quantity' => 1,
             'payment_method' => 'credit',
             'service_status' => 'closed',
-            'actual_start_time' => '14:30',
-            'actual_end_time' => '15:30',
+            'actual_start' => '2026-04-23 14:30',
+            'actual_end' => '2026-04-23 15:30',
         ]);
 
         $response->assertSessionHasErrors(['manual_entry_justification']);
@@ -96,16 +97,17 @@ test('retroactive gate ignores host-TZ today shift when operation_tz is UTC', fu
             'contract_id' => $contract->id,
             'vehicle_id' => $vehicle->id,
             'driver_id' => $driver->id,
-            'service_date' => '2026-04-24',
-            'planned_start_time' => '14:30',
+            'origin_municipality_id' => \App\Models\Municipality::factory()->create()->id,
+            'destination_municipality_id' => \App\Models\Municipality::factory()->create()->id,
+            'planned_start' => '2026-04-24 14:30',
             'timezone' => 'UTC',
             'planned_duration' => 60,
             'unit_value' => 100000,
             'quantity' => 1,
             'payment_method' => 'credit',
             'service_status' => 'closed',
-            'actual_start_time' => '14:30',
-            'actual_end_time' => '15:30',
+            'actual_start' => '2026-04-24 14:30',
+            'actual_end' => '2026-04-24 15:30',
         ]);
 
         $response->assertSessionHasErrors(['service_status']);

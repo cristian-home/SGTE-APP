@@ -201,6 +201,9 @@ export default function ServicesShow({
                 {/* Heading row */}
                 <div className="flex items-start justify-between gap-4">
                     <div className="flex items-center gap-3">
+                        <span className="rounded-md bg-muted px-2 py-1 font-mono text-base font-semibold tracking-wide tabular-nums">
+                            {service.service_number}
+                        </span>
                         <h1 className="text-2xl font-bold tracking-tight">
                             {pageTitle}
                         </h1>
@@ -389,14 +392,16 @@ export default function ServicesShow({
                                     {service.billing_groups &&
                                     service.billing_groups.length > 0 ? (
                                         <div className="flex flex-wrap justify-center gap-1">
-                                            {service.billing_groups.map((tag) => (
-                                                <Badge
-                                                    key={tag}
-                                                    variant="secondary"
-                                                >
-                                                    {tag}
-                                                </Badge>
-                                            ))}
+                                            {service.billing_groups.map(
+                                                (tag) => (
+                                                    <Badge
+                                                        key={tag}
+                                                        variant="secondary"
+                                                    >
+                                                        {tag}
+                                                    </Badge>
+                                                ),
+                                            )}
                                         </div>
                                     ) : (
                                         '\u2014'

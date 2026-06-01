@@ -1,5 +1,4 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { useState } from 'react';
 import ServiceController from '@/actions/App/Http/Controllers/ServiceController';
 import { type MunicipalityOption } from '@/components/municipality-combobox';
 import ServiceForm, {
@@ -9,12 +8,14 @@ import ServiceForm, {
 } from '@/components/services/service-form';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
+import { scrollToFirstError } from '@/lib/scroll-to-first-error';
 import services from '@/routes/services';
 import { type BreadcrumbItem } from '@/types';
 import type { DayStatus } from '@/types/models';
 
 interface Service {
     id: number;
+    service_number: string;
     contract_id: number;
     vehicle_id: number;
     driver_id: number | null;
@@ -32,10 +33,11 @@ interface Service {
     destination_coordinates_source: string | null;
     destination_coordinates_accuracy: string | null;
     destination_place_id: string | null;
-    planned_start_local: string;
+    planned_start_local_datetime: string | null;
+    planned_end_local_datetime: string | null;
     planned_duration: number;
-    actual_start_local: string | null;
-    actual_end_local: string | null;
+    actual_start_local_datetime: string | null;
+    actual_end_local_datetime: string | null;
     unit_value: string;
     quantity: number;
     billing_groups?: string[] | null;
@@ -75,7 +77,6 @@ export default function ServicesEdit({
         contract_id: String(service.contract_id),
         vehicle_id: String(service.vehicle_id),
         driver_id: service.driver_id ? String(service.driver_id) : '',
-        service_date: service.service_date.substring(0, 10),
         origin_municipality_id: service.origin_municipality_id
             ? String(service.origin_municipality_id)
             : '',
@@ -94,10 +95,11 @@ export default function ServicesEdit({
         destination_coordinates_accuracy:
             service.destination_coordinates_accuracy ?? '',
         destination_place_id: service.destination_place_id ?? '',
-        planned_start_time: service.planned_start_local,
+        planned_start: service.planned_start_local_datetime ?? '',
+        planned_end: service.planned_end_local_datetime ?? '',
         planned_duration: String(service.planned_duration),
-        actual_start_time: service.actual_start_local ?? '',
-        actual_end_time: service.actual_end_local ?? '',
+        actual_start: service.actual_start_local_datetime ?? '',
+        actual_end: service.actual_end_local_datetime ?? '',
         timezone: service.timezone,
         unit_value: service.unit_value,
         quantity: String(service.quantity),
@@ -110,10 +112,12 @@ export default function ServicesEdit({
 
     function submit(e: React.FormEvent) {
         e.preventDefault();
-        put(ServiceController.update(service.id).url);
+        // The Update button stays enabled; on a validation error we surface
+        // the inline messages and bring the first offending field into view.
+        put(ServiceController.update(service.id).url, {
+            onError: scrollToFirstError,
+        });
     }
-
-    const [addressCommitInFlight, setAddressCommitInFlight] = useState(false);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -131,18 +135,15 @@ export default function ServicesEdit({
                         municipalities={municipalities}
                         incidentCount={service.service_incidents_count}
                         mode="edit"
+                        serviceNumber={service.service_number}
                         dayStatus={dayStatus}
                         canEditExecuted={canEditExecuted}
                         isAdmin={isAdmin}
-                        onAddressCommitInFlight={setAddressCommitInFlight}
                     />
 
                     {!isFullyLocked && (
                         <div className="flex items-center gap-4">
-                            <Button
-                                type="submit"
-                                disabled={processing || addressCommitInFlight}
-                            >
+                            <Button type="submit" disabled={processing}>
                                 Actualizar
                             </Button>
                             <Link href={services.index().url}>

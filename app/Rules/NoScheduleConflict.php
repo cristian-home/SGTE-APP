@@ -13,14 +13,14 @@ class NoScheduleConflict implements ValidationRule
         protected string $field,
         protected int $fieldValue,
         protected string $plannedStartAt,
-        protected int $plannedDuration,
+        protected string $plannedEndAt,
         protected ?int $excludeServiceId = null,
     ) {}
 
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
         $newStart = Carbon::parse($this->plannedStartAt);
-        $newEnd = $newStart->copy()->addMinutes($this->plannedDuration);
+        $newEnd = Carbon::parse($this->plannedEndAt);
 
         // Use the denormalized day column to limit the candidate set to a
         // 1- or 2-day window (a service may straddle midnight in some TZ),
@@ -38,11 +38,11 @@ class NoScheduleConflict implements ValidationRule
                 }
             })
             ->when($this->excludeServiceId, fn ($q) => $q->where('id', '!=', $this->excludeServiceId))
-            ->get(['id', 'planned_start_at', 'planned_duration', 'timezone']);
+            ->get(['id', 'planned_start_at', 'planned_end_at', 'timezone']);
 
         foreach ($conflicts as $existing) {
             $existingStart = Carbon::parse($existing->planned_start_at);
-            $existingEnd = $existingStart->copy()->addMinutes($existing->planned_duration);
+            $existingEnd = Carbon::parse($existing->planned_end_at);
 
             if ($existingStart < $newEnd && $newStart < $existingEnd) {
                 $label = $this->field === 'vehicle_id' ? 'vehiculo' : 'conductor';

@@ -40,7 +40,7 @@ const TYPEAHEAD_DEBOUNCE_MS = 250;
 /** Radius (m) of the location-bias circle around the selected municipality. */
 const BIAS_RADIUS_M = 30_000;
 
-export type CoordinatesSource = 'google' | 'manual' | '';
+export type CoordinatesSource = 'google' | 'manual' | 'centroid' | '';
 
 interface LocationFieldProps {
     id: string;
@@ -1001,6 +1001,7 @@ function CoordsIndicator({
 function sourceLabel(source: CoordinatesSource): string {
     if (source === 'google') return 'Google';
     if (source === 'manual') return 'pin manual';
+    if (source === 'centroid') return 'centro de la ciudad';
     return '';
 }
 

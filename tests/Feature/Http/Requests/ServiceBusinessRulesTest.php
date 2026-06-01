@@ -32,8 +32,9 @@ function validStorePayload(array $overrides = []): array
 {
     return array_merge([
         'contract_id' => test()->contract->id,
-        'service_date' => Carbon::now()->toDateString(),
-        'planned_start_time' => '10:00',
+        'origin_municipality_id' => \App\Models\Municipality::factory()->create()->id,
+        'destination_municipality_id' => \App\Models\Municipality::factory()->create()->id,
+        'planned_start' => Carbon::now()->toDateString().' 10:00',
         'planned_duration' => 60,
         'unit_value' => 100000,
         'quantity' => 1,

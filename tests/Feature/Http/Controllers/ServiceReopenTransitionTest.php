@@ -38,18 +38,41 @@ beforeEach(function (): void {
 
 function reopenTransitionPayload(array $overrides = []): array
 {
-    return array_merge([
+    $date = array_key_exists('service_date', $overrides)
+        ? $overrides['service_date']
+        : Carbon::now()->toDateString();
+    $startTime = $overrides['planned_start_time'] ?? '08:00';
+    $actualStart = array_key_exists('actual_start_time', $overrides) ? $overrides['actual_start_time'] : null;
+    $actualEnd = array_key_exists('actual_end_time', $overrides) ? $overrides['actual_end_time'] : null;
+    unset(
+        $overrides['service_date'],
+        $overrides['planned_start_time'],
+        $overrides['actual_start_time'],
+        $overrides['actual_end_time'],
+    );
+
+    $payload = array_merge([
         'contract_id' => test()->contract->id,
         'vehicle_id' => test()->vehicle->id,
         'driver_id' => test()->driver->id,
-        'service_date' => Carbon::now()->toDateString(),
-        'planned_start_time' => '08:00',
+        'origin_municipality_id' => \App\Models\Municipality::factory()->create()->id,
+        'destination_municipality_id' => \App\Models\Municipality::factory()->create()->id,
+        'planned_start' => "{$date} {$startTime}",
         'planned_duration' => 60,
         'unit_value' => 100000,
         'quantity' => 1,
         'payment_method' => 'credit',
         'service_status' => 'open',
     ], $overrides);
+
+    if ($actualStart !== null) {
+        $payload['actual_start'] = "{$date} {$actualStart}";
+    }
+    if ($actualEnd !== null) {
+        $payload['actual_end'] = "{$date} {$actualEnd}";
+    }
+
+    return $payload;
 }
 
 test('Open → Open transition does not touch actual_*_time fields', function (): void {
@@ -94,7 +117,7 @@ test('Open → Closed transition requires both actual_*_time fields and persists
     // Without actual_*_time on close → 422 on both fields.
     put(route('services.update', $service), reopenTransitionPayload([
         'service_status' => 'closed',
-    ]))->assertSessionHasErrors(['actual_start_time', 'actual_end_time']);
+    ]))->assertSessionHasErrors(['actual_start', 'actual_end']);
 
     // Supplying both closes cleanly and writes the transition activity log.
     put(route('services.update', $service), reopenTransitionPayload([

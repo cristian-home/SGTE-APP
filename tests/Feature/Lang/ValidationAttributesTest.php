@@ -25,11 +25,11 @@ it('renders Spanish attribute names for snake_case service form fields', functio
     $errors = session('errors')->getBag('default')->toArray();
 
     expect($errors)
-        ->toHaveKey('service_date')
+        ->toHaveKey('service_date_local')
         ->toHaveKey('contract_id')
         ->toHaveKey('vehicle_id')
-        ->toHaveKey('planned_start_time')
-        ->toHaveKey('planned_duration')
+        ->toHaveKey('planned_start')
+        ->toHaveKey('planned_end_at')
         ->toHaveKey('unit_value');
 
     // Raw English snake_case must not appear in the rendered messages.
@@ -38,8 +38,8 @@ it('renders Spanish attribute names for snake_case service form fields', functio
     expect($joined)->not->toContain('vehicle id');
     expect($joined)->not->toContain('contract id');
     expect($joined)->not->toContain('service date');
-    expect($joined)->not->toContain('planned start time');
-    expect($joined)->not->toContain('planned duration');
+    expect($joined)->not->toContain('planned start');
+    expect($joined)->not->toContain('planned end');
     expect($joined)->not->toContain('unit value');
 
     // Spanish labels from lang/es/validation.php:attributes are present.
@@ -47,8 +47,8 @@ it('renders Spanish attribute names for snake_case service form fields', functio
         ->toContain('fecha del servicio')
         ->toContain('contrato')
         ->toContain('vehículo')
-        ->toContain('hora de inicio planificada')
-        ->toContain('duración planificada')
+        ->toContain('inicio planificado')
+        ->toContain('fecha y hora de fin planificada')
         ->toContain('valor unitario');
 });
 

@@ -120,6 +120,9 @@ export default function InvoiceDialog({
             // be a good network citizen on rapid open/close).
             abortRef.current?.abort();
             attachedAbortRef.current?.abort();
+            // Reset picker state when the dialog closes — a deliberate
+            // reset-on-dependency-change tied to the open/close lifecycle.
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setEligibleServices(null);
             setAttachedServices([]);
             setLoadingEligible(false);

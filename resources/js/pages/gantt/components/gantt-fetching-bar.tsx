@@ -18,19 +18,21 @@ interface Props {
  * `delayMs`. Pure CSS animation, no layout cost — uses the
  * `indeterminate-bar` keyframe defined in `app.css`.
  */
-export default function GanttFetchingBar({
-    isFetching,
-    delayMs = 200,
-}: Props) {
+export default function GanttFetchingBar({ isFetching, delayMs = 200 }: Props) {
     const [visible, setVisible] = useState(false);
 
     useEffect(() => {
         if (!isFetching) {
-            setVisible(false);
             return;
         }
         const id = window.setTimeout(() => setVisible(true), delayMs);
-        return () => window.clearTimeout(id);
+        // Hide on cleanup — runs when `isFetching` flips back to false (or
+        // on unmount), so the bar disappears immediately without a
+        // synchronous setState in the effect body.
+        return () => {
+            window.clearTimeout(id);
+            setVisible(false);
+        };
     }, [isFetching, delayMs]);
 
     if (!visible) return null;
@@ -38,7 +40,7 @@ export default function GanttFetchingBar({
     return (
         <div
             aria-hidden
-            className="pointer-events-none absolute top-0 inset-x-0 z-50 h-0.5 overflow-hidden bg-primary/10"
+            className="pointer-events-none absolute inset-x-0 top-0 z-50 h-0.5 overflow-hidden bg-primary/10"
         >
             <div
                 className="h-full w-1/4 bg-primary"

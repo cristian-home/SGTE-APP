@@ -197,7 +197,7 @@ class DashboardController extends Controller
      * planned_duration, timezone, vehicle plate, status and brief origin
      * label.
      *
-     * @return array<int, array{id: int, vehicle_plate: string|null, planned_start_at: string|null, planned_duration_min: int|null, timezone: string, status: string, origin_label: string|null}>
+     * @return array<int, array{id: int, service_number: string, vehicle_plate: string|null, planned_start_at: string|null, planned_duration_min: int|null, timezone: string, status: string, origin_label: string|null}>
      */
     private function buildTodayServices(string $todayString): array
     {
@@ -208,16 +208,18 @@ class DashboardController extends Controller
             ->limit(self::TODAY_SERVICES_LIMIT)
             ->get([
                 'id',
+                'service_number',
                 'vehicle_id',
                 'origin_municipality_id',
                 'origin_address',
                 'planned_start_at',
-                'planned_duration',
+                'planned_end_at',
                 'timezone',
                 'service_status',
             ])
             ->map(fn (Service $service): array => [
                 'id' => $service->id,
+                'service_number' => $service->service_number,
                 'vehicle_plate' => $service->vehicle?->plate,
                 'planned_start_at' => $service->planned_start_at?->toIso8601String(),
                 'planned_duration_min' => $service->planned_duration,

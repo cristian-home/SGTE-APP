@@ -138,6 +138,14 @@
         @apply border-border;
     }
 
+    /* The root/canvas background uses the sidebar color (--color-sidebar)
+       so the area behind the layout — overscroll, gaps — matches the
+       sidebar. Adapts to light/dark automatically since --sidebar is
+       redefined under .dark. The body keeps its own bg-background. */
+    html {
+        @apply bg-sidebar;
+    }
+
     body {
         @apply bg-background text-foreground;
     }

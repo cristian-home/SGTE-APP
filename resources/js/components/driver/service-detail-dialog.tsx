@@ -110,6 +110,9 @@ export function ServiceDetailDialog({
                                     <div className="min-w-0">
                                         <DialogTitle className="font-mono text-lg/tight sm:text-xl">
                                             {service.vehicle?.plate ?? '—'}
+                                            <span className="ml-2 align-middle text-sm font-normal text-muted-foreground">
+                                                {service.service_number}
+                                            </span>
                                         </DialogTitle>
                                         <DialogDescription className="mt-0.5 line-clamp-1">
                                             {clientName(service)}

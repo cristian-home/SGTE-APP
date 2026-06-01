@@ -25,6 +25,7 @@ import { dateFormatter, parseDueDate } from '@/lib/document-status';
 
 export interface ServicePickerRow {
     id: number;
+    service_number: string;
     service_date: string | null;
     unit_value: string | number | null;
     quantity: number | null;
@@ -173,9 +174,7 @@ export default function ServicePickerTable({
                 set.add(tag);
             }
         }
-        return Array.from(set.values()).sort((a, b) =>
-            a.localeCompare(b),
-        );
+        return Array.from(set.values()).sort((a, b) => a.localeCompare(b));
     }, [candidates, blockedCandidates, attachedCandidates]);
 
     const filter = (rows: ServicePickerRow[]) => {
@@ -188,6 +187,7 @@ export default function ServicePickerTable({
                 if (!has) return false;
             }
             if (!term) return true;
+            const consecutive = (row.service_number ?? '').toLowerCase();
             const plate = (row.vehicle?.plate ?? '').toLowerCase();
             const contract = (
                 row.contract?.contract_number ?? ''
@@ -195,6 +195,7 @@ export default function ServicePickerTable({
             const first = (row.driver?.first_name ?? '').toLowerCase();
             const last = (row.driver?.first_lastname ?? '').toLowerCase();
             return (
+                consecutive.includes(term) ||
                 plate.includes(term) ||
                 contract.includes(term) ||
                 first.includes(term) ||
@@ -328,7 +329,7 @@ export default function ServicePickerTable({
                                         aria-label="Seleccionar todos"
                                     />
                                 </TableHead>
-                                <TableHead>Fecha</TableHead>
+                                <TableHead>Servicio</TableHead>
                                 <TableHead>Vehículo</TableHead>
                                 <TableHead>Conductor</TableHead>
                                 <TableHead>Contrato</TableHead>
@@ -372,9 +373,14 @@ export default function ServicePickerTable({
                                                     />
                                                 </TableCell>
                                                 <TableCell>
-                                                    {formatDate(
-                                                        row.service_date,
-                                                    )}
+                                                    <span className="font-mono tabular-nums">
+                                                        {row.service_number}
+                                                    </span>
+                                                    <span className="ml-1 text-xs text-muted-foreground">
+                                                        {formatDate(
+                                                            row.service_date,
+                                                        )}
+                                                    </span>
                                                 </TableCell>
                                                 <TableCell className="font-mono">
                                                     {row.vehicle?.plate ?? '—'}
@@ -433,7 +439,12 @@ export default function ServicePickerTable({
                                             />
                                         </TableCell>
                                         <TableCell>
-                                            {formatDate(row.service_date)}
+                                            <span className="font-mono tabular-nums">
+                                                {row.service_number}
+                                            </span>
+                                            <span className="ml-1 text-xs text-muted-foreground">
+                                                {formatDate(row.service_date)}
+                                            </span>
                                         </TableCell>
                                         <TableCell className="font-mono">
                                             {row.vehicle?.plate ?? '—'}
@@ -494,9 +505,14 @@ export default function ServicePickerTable({
                                                     />
                                                 </TableCell>
                                                 <TableCell>
-                                                    {formatDate(
-                                                        row.service_date,
-                                                    )}
+                                                    <span className="font-mono tabular-nums">
+                                                        {row.service_number}
+                                                    </span>
+                                                    <span className="ml-1 text-xs text-muted-foreground">
+                                                        {formatDate(
+                                                            row.service_date,
+                                                        )}
+                                                    </span>
                                                 </TableCell>
                                                 <TableCell className="font-mono">
                                                     {row.vehicle?.plate ?? '—'}

@@ -22,10 +22,10 @@ class ServiceUpdateRequest extends ServiceStoreRequest
      * REQ-009 service_status transition invariant
      * (service-reopen-actual-time-invariant):
      *
-     * - Closed → Open: clear actual_end_time / actual_end_at,
-     *   preserve actual_start_time / actual_start_at.
+     * - Closed → Open: clear actual_end / actual_end_at,
+     *   preserve actual_start / actual_start_at.
      *   The service is "resumable" — it started but hasn't finished yet.
-     * - Open → Closed: requires both actual_*_time fields (handled
+     * - Open → Closed: requires both actual_* datetime fields (handled
      *   by the existing `required_if:service_status,closed` rule on
      *   both columns inherited from ServiceStoreRequest).
      * - Open → Open or Closed → Closed: no-op on the time fields.
@@ -53,7 +53,7 @@ class ServiceUpdateRequest extends ServiceStoreRequest
             && $incomingStatus === ServiceStatus::Open->value
         ) {
             $this->merge([
-                'actual_end_time' => null,
+                'actual_end' => null,
                 'actual_end_at' => null,
             ]);
         }

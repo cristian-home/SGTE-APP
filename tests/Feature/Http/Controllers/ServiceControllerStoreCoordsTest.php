@@ -44,7 +44,6 @@ function buildStoreCoordsPayload(array $overrides = []): array
         'contract_id' => $contract->id,
         'vehicle_id' => $vehicle->id,
         'driver_id' => $driver->id,
-        'service_date' => Carbon::now()->toDateString(),
         'origin_municipality_id' => $origin->id,
         'origin_address' => 'Calle 41A Sur #83-17',
         'origin_coordinates' => '4.5816950,-74.1784720',
@@ -57,7 +56,7 @@ function buildStoreCoordsPayload(array $overrides = []): array
         'destination_coordinates_source' => 'manual',
         'destination_coordinates_accuracy' => null,
         'destination_place_id' => null,
-        'planned_start_time' => '08:00',
+        'planned_start' => Carbon::now()->toDateString().' 08:00',
         'planned_duration' => 120,
         'unit_value' => 250000,
         'quantity' => 1,
@@ -101,9 +100,10 @@ test('store rejects the removed mapbox coordinate source', function (): void {
     )->assertStatus(302)->assertSessionHasErrors(['origin_coordinates_source']);
 });
 
-test('store accepts fully empty origin and destination', function (): void {
-    // Service without a known origin or destination is legitimate (e.g. ad-hoc).
-    // Empty everything must pass.
+test('store rejects fully empty origin and destination municipalities', function (): void {
+    // Origin and destination cities are now REQUIRED. Nulling the
+    // municipality ids (and addresses/coords) must fail validation on
+    // both *_municipality_id fields.
     post(
         route('services.store'),
         buildStoreCoordsPayload([
@@ -120,13 +120,12 @@ test('store accepts fully empty origin and destination', function (): void {
             'destination_coordinates_accuracy' => null,
             'destination_place_id' => null,
         ])
-    )->assertRedirect(route('services.index'));
-
-    $service = Service::query()->latest('id')->first();
-    expect($service->origin_address)->toBeNull();
-    expect($service->origin_coordinates)->toBeNull();
-    expect($service->origin_coordinates_source)->toBeNull();
-    expect($service->origin_place_id)->toBeNull();
+    )
+        ->assertStatus(302)
+        ->assertSessionHasErrors([
+            'origin_municipality_id',
+            'destination_municipality_id',
+        ]);
 });
 
 test('store rejects address text without coordinates (origin)', function (): void {

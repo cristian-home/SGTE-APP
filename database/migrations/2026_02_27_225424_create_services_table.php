@@ -52,7 +52,11 @@ return new class extends Migration
             // queries. Wall-clock projection is derived from these + the
             // `timezone` column via accessors on the Service model.
             $table->timestampTz('planned_start_at');
-            $table->integer('planned_duration');
+            // UTC instant for the planned end. Source of truth for the
+            // planned window; the planned duration (minutes) is NOT stored —
+            // it is derived on the fly from (planned_end_at - planned_start_at)
+            // via the Service::planned_duration accessor.
+            $table->timestampTz('planned_end_at')->nullable();
             $table->timestampTz('actual_start_at')->nullable();
             $table->timestampTz('actual_end_at')->nullable();
             // IANA timezone the service is operationally scheduled in. Read

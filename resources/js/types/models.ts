@@ -179,6 +179,8 @@ export type Invoice = {
 
 export type Service = {
     id: number;
+    /** User-facing consecutive, e.g. "SRV-0001-2026". Reserved at create time. */
+    service_number: string;
     contract_id: number;
     vehicle_id: number;
     driver_id: number | null;
@@ -204,6 +206,8 @@ export type Service = {
     route_duration_s: number | null;
     /** UTC instant (ISO 8601). Render via `lib/datetime.ts` helpers in `timezone`. */
     planned_start_at: string;
+    /** UTC instant (ISO 8601) or null. Render via `lib/datetime.ts` in `timezone`. */
+    planned_end_at: string | null;
     planned_duration: number;
     /** UTC instant (ISO 8601) or null. */
     actual_start_at: string | null;

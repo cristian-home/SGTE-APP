@@ -27,17 +27,18 @@ test('store fails when service_status is closed and actual_start_time is missing
         'contract_id' => $this->contract->id,
         'vehicle_id' => $this->vehicle->id,
         'driver_id' => $this->driver->id,
-        'service_date' => Carbon::now()->toDateString(),
-        'planned_start_time' => '08:00',
+        'origin_municipality_id' => \App\Models\Municipality::factory()->create()->id,
+        'destination_municipality_id' => \App\Models\Municipality::factory()->create()->id,
+        'planned_start' => Carbon::now()->toDateString().' 08:00',
         'planned_duration' => 60,
         'unit_value' => 100000,
         'quantity' => 1,
         'payment_method' => 'credit',
         'service_status' => 'closed',
-        'actual_end_time' => '10:00',
+        'actual_end' => Carbon::now()->toDateString().' 10:00',
     ]);
 
-    $response->assertSessionHasErrors(['actual_start_time']);
+    $response->assertSessionHasErrors(['actual_start']);
 });
 
 test('store fails when service_status is closed and actual_end_time is missing', function (): void {
@@ -45,17 +46,18 @@ test('store fails when service_status is closed and actual_end_time is missing',
         'contract_id' => $this->contract->id,
         'vehicle_id' => $this->vehicle->id,
         'driver_id' => $this->driver->id,
-        'service_date' => Carbon::now()->toDateString(),
-        'planned_start_time' => '08:00',
+        'origin_municipality_id' => \App\Models\Municipality::factory()->create()->id,
+        'destination_municipality_id' => \App\Models\Municipality::factory()->create()->id,
+        'planned_start' => Carbon::now()->toDateString().' 08:00',
         'planned_duration' => 60,
         'unit_value' => 100000,
         'quantity' => 1,
         'payment_method' => 'credit',
         'service_status' => 'closed',
-        'actual_start_time' => '08:00',
+        'actual_start' => Carbon::now()->toDateString().' 08:00',
     ]);
 
-    $response->assertSessionHasErrors(['actual_end_time']);
+    $response->assertSessionHasErrors(['actual_end']);
 });
 
 test('store succeeds when service_status is closed and both actual times are provided', function (): void {
@@ -69,15 +71,16 @@ test('store succeeds when service_status is closed and both actual times are pro
         'contract_id' => $this->contract->id,
         'vehicle_id' => $this->vehicle->id,
         'driver_id' => $this->driver->id,
-        'service_date' => Carbon::yesterday()->toDateString(),
-        'planned_start_time' => '08:00',
+        'origin_municipality_id' => \App\Models\Municipality::factory()->create()->id,
+        'destination_municipality_id' => \App\Models\Municipality::factory()->create()->id,
+        'planned_start' => Carbon::yesterday()->toDateString().' 08:00',
         'planned_duration' => 60,
         'unit_value' => 100000,
         'quantity' => 1,
         'payment_method' => 'credit',
         'service_status' => 'closed',
-        'actual_start_time' => '08:00',
-        'actual_end_time' => '09:30',
+        'actual_start' => Carbon::yesterday()->toDateString().' 08:00',
+        'actual_end' => Carbon::yesterday()->toDateString().' 09:30',
         'manual_entry_justification' => 'Registro histórico — el servicio se ejecutó sin acceso al sistema.',
     ]);
 
@@ -89,8 +92,9 @@ test('store succeeds when service_status is open and actual times are null', fun
         'contract_id' => $this->contract->id,
         'vehicle_id' => $this->vehicle->id,
         'driver_id' => $this->driver->id,
-        'service_date' => Carbon::now()->toDateString(),
-        'planned_start_time' => '08:00',
+        'origin_municipality_id' => \App\Models\Municipality::factory()->create()->id,
+        'destination_municipality_id' => \App\Models\Municipality::factory()->create()->id,
+        'planned_start' => Carbon::now()->toDateString().' 08:00',
         'planned_duration' => 60,
         'unit_value' => 100000,
         'quantity' => 1,

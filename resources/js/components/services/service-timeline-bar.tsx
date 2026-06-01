@@ -14,17 +14,13 @@ interface ServiceTimelineBarProps {
 }
 
 /**
- * Convert a UTC instant to fractional minutes-of-day in `timezone`.
+ * Whole minutes between two UTC instants. Positioning the bars by absolute
+ * elapsed time (rather than minutes-of-day) keeps a window that crosses
+ * midnight contiguous — a minutes-of-day value wraps at 00:00 and would make
+ * the actual end land *before* its start.
  */
-function instantToMinutesInTz(at: string, timezone: string): number {
-    const fmt = new Intl.DateTimeFormat('en-GB', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-        timeZone: timezone,
-    });
-    const [hStr, mStr] = fmt.format(new Date(at)).split(':');
-    return Number(hStr) * 60 + Number(mStr);
+function minutesBetween(fromAt: string, toAt: string): number {
+    return (Date.parse(toAt) - Date.parse(fromAt)) / 60000;
 }
 
 export function ServiceTimelineBar({
@@ -34,15 +30,17 @@ export function ServiceTimelineBar({
     actualEndAt,
     timezone,
 }: ServiceTimelineBarProps) {
-    const plannedStart = instantToMinutesInTz(plannedStartAt, timezone);
-    const plannedEnd = plannedStart + plannedDuration;
+    // Anchor every offset to the planned start instant (= 0). The axis is
+    // self-relative, so the absolute origin is irrelevant for layout.
+    const plannedStart = 0;
+    const plannedEnd = plannedDuration;
 
     const hasActual = actualStartAt !== null && actualEndAt !== null;
     const actualStart = hasActual
-        ? instantToMinutesInTz(actualStartAt, timezone)
+        ? minutesBetween(plannedStartAt, actualStartAt)
         : null;
     const actualEnd = hasActual
-        ? instantToMinutesInTz(actualEndAt, timezone)
+        ? minutesBetween(plannedStartAt, actualEndAt)
         : null;
 
     const actualDuration =

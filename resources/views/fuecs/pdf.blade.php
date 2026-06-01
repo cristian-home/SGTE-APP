@@ -174,6 +174,7 @@
 
     <div class="section-title">Servicio</div>
     <table class="data">
+        <tr><td class="label">Consecutivo</td><td>{{ $service->service_number }}</td></tr>
         <tr><td class="label">Fecha</td><td>{{ $fmtDate($service->service_date) }}</td></tr>
         <tr><td class="label">Hora planificada</td><td>{{ $service->planned_start_time ?? '—' }}</td></tr>
         <tr><td class="label">Duración estimada</td><td>{{ $service->planned_duration ?? '—' }} min</td></tr>

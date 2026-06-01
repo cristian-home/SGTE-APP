@@ -120,6 +120,7 @@ class ServiceSeeder extends Seeder
             )));
 
             Service::create([
+                'service_number' => Service::reserveNextNumber(),
                 'contract_id' => $contract->id,
                 'vehicle_id' => $vehicle->id,
                 'driver_id' => $driver->id,
@@ -138,7 +139,7 @@ class ServiceSeeder extends Seeder
                 'destination_coordinates_accuracy' => $destination['accuracy'],
                 'destination_place_id' => $destination['place_id'] ?? null,
                 'planned_start_at' => $plannedStart,
-                'planned_duration' => $duration,
+                'planned_end_at' => $plannedEnd,
                 'actual_start_at' => $actualStart,
                 'actual_end_at' => $actualEnd,
                 'timezone' => SeedClock::tz(),

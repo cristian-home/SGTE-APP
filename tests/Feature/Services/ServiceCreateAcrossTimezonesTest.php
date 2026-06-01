@@ -48,8 +48,9 @@ test('service create persists planned_start_at + service_date_local consistently
             'contract_id' => $contract->id,
             'vehicle_id' => $vehicle->id,
             'driver_id' => $driver->id,
-            'service_date' => '2026-04-24',
-            'planned_start_time' => '14:30',
+            'origin_municipality_id' => \App\Models\Municipality::factory()->create()->id,
+            'destination_municipality_id' => \App\Models\Municipality::factory()->create()->id,
+            'planned_start' => '2026-06-24 14:30',
             'timezone' => 'America/Bogota',
             'planned_duration' => 60,
             'unit_value' => 100000,
@@ -62,9 +63,9 @@ test('service create persists planned_start_at + service_date_local consistently
 
         // 14:30 Bogotá (UTC-5) == 19:30 UTC.
         expect(Carbon::parse($service->planned_start_at)->utc()->toIso8601String())
-            ->toBe('2026-04-24T19:30:00+00:00')
+            ->toBe('2026-06-24T19:30:00+00:00')
             ->and((string) $service->service_date_local->format('Y-m-d'))
-            ->toBe('2026-04-24')
+            ->toBe('2026-06-24')
             ->and($service->timezone)
             ->toBe('America/Bogota');
     });

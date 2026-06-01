@@ -8,6 +8,7 @@ import { HOUR_LABELS, serviceBarPosition } from '@/pages/gantt/gantt-utils';
 
 export type DashboardTodayService = {
     id: number;
+    service_number: string;
     vehicle_plate: string | null;
     planned_start_at: string | null;
     planned_duration_min: number | null;
@@ -159,7 +160,7 @@ function GanttRow({
                                 left: `${pos.left}%`,
                                 width: `${pos.width}%`,
                             }}
-                            title={`#${service.id} ${service.origin_label ?? ''}`}
+                            title={`${service.service_number} · ${service.origin_label ?? ''}`}
                         >
                             <span className="truncate">
                                 {service.origin_label}

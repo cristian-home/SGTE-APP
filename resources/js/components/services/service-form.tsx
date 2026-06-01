@@ -1,9 +1,12 @@
 import { usePage } from '@inertiajs/react';
 import { APIProvider } from '@vis.gl/react-google-maps';
+import { endOfDay, format as formatDate, startOfDay } from 'date-fns';
+import { es } from 'date-fns/locale';
 import {
     AlertTriangle,
     ArrowRightLeft,
     Banknote,
+    CalendarClock,
     CreditCard,
     Info,
     Lock,
@@ -36,6 +39,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { DateTimePicker } from '@/components/ui/datetime-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import MoneyInput from '@/components/ui/money-input';
@@ -50,7 +54,7 @@ import {
 import { PaymentMethod, PaymentMethodLabel } from '@/enums/PaymentMethod';
 import { ServiceStatus, ServiceStatusLabel } from '@/enums/ServiceStatus';
 import { type VehicleType, VehicleTypeLabel } from '@/enums/VehicleType';
-import { viewerToday } from '@/lib/datetime';
+import { dateToWallClock, viewerToday, wallClockToDate } from '@/lib/datetime';
 import { GOOGLE_MAPS_BROWSER_KEY } from '@/lib/google-maps';
 import { normalizeCity } from '@/lib/normalize-city';
 import { cn } from '@/lib/utils';
@@ -106,7 +110,6 @@ export interface ServiceFormData {
     contract_id: string;
     vehicle_id: string;
     driver_id: string;
-    service_date: string;
     origin_municipality_id: string;
     origin_address: string;
     /** "lat,lng" pair captured from a Google Places pick or a manual map pin. Empty when the operator typed the address without confirming a location. */
@@ -125,10 +128,15 @@ export interface ServiceFormData {
     destination_coordinates_accuracy: string;
     /** Google Place ID when source is 'google'. Empty for manual pins or legacy. */
     destination_place_id: string;
-    planned_start_time: string;
+    /** Wall-clock `Y-m-d H:i` in the service's timezone. */
+    planned_start: string;
+    /** Wall-clock `Y-m-d H:i`; derived from start + duration (or edited directly). */
+    planned_end: string;
     planned_duration: string;
-    actual_start_time: string;
-    actual_end_time: string;
+    /** Wall-clock `Y-m-d H:i`; empty until the service is closed. */
+    actual_start: string;
+    /** Wall-clock `Y-m-d H:i`; may fall on a later day than actual_start. */
+    actual_end: string;
     unit_value: string;
     quantity: string;
     billing_groups: string[];
@@ -264,42 +272,48 @@ function driverLicenseStatus(
     return null;
 }
 
+/**
+ * Wall-clock minute math. Both inputs are `Y-m-d H:i` strings interpreted
+ * as the same (service) timezone, so the difference is computed via
+ * `Date.UTC` purely from the calendar components — no local-TZ or DST
+ * skew, and a window that crosses midnight yields a correct positive
+ * duration.
+ */
+function wallClockToMinutes(value: string): number | null {
+    const match = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/.exec(
+        value || '',
+    );
+    if (!match) return null;
+    const [, y, mo, d, h, mi] = match.map(Number);
+    return Date.UTC(y, mo - 1, d, h, mi) / 60_000;
+}
+
+function minutesToWallClock(totalMinutes: number): string {
+    const d = new Date(totalMinutes * 60_000);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return (
+        `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}` +
+        ` ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`
+    );
+}
+
+function addMinutesWc(start: string, mins: number): string | null {
+    const base = wallClockToMinutes(start);
+    if (base === null || !Number.isFinite(mins)) return null;
+    return minutesToWallClock(base + mins);
+}
+
+function diffMinutesWc(start: string, end: string): number | null {
+    const s = wallClockToMinutes(start);
+    const e = wallClockToMinutes(end);
+    if (s === null || e === null) return null;
+    const diff = e - s;
+    return diff > 0 ? diff : null;
+}
+
 function computeActualDuration(start: string, end: string): string | null {
-    if (!start || !end) return null;
-    const [sh, sm] = start.split(':').map(Number);
-    const [eh, em] = end.split(':').map(Number);
-    const diff = eh * 60 + em - (sh * 60 + sm);
-    if (diff <= 0) return null;
-    return `${diff} min`;
-}
-
-function parseHHmm(value: string): { h: number; m: number } | null {
-    if (!value) return null;
-    const [h, m] = value.split(':').map(Number);
-    if (Number.isNaN(h) || Number.isNaN(m)) return null;
-    return { h, m };
-}
-
-function formatHHmm(totalMinutes: number): string {
-    const wrapped = ((totalMinutes % 1440) + 1440) % 1440;
-    const h = Math.floor(wrapped / 60);
-    const m = wrapped % 60;
-    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-}
-
-function addMinutes(start: string, mins: number): string | null {
-    const parsed = parseHHmm(start);
-    if (!parsed || !Number.isFinite(mins)) return null;
-    return formatHHmm(parsed.h * 60 + parsed.m + mins);
-}
-
-function diffMinutes(start: string, end: string): number | null {
-    const s = parseHHmm(start);
-    const e = parseHHmm(end);
-    if (!s || !e) return null;
-    const diff = e.h * 60 + e.m - (s.h * 60 + s.m);
-    if (diff <= 0) return null;
-    return diff;
+    const diff = diffMinutesWc(start, end);
+    return diff === null ? null : `${diff} min`;
 }
 
 /**
@@ -346,6 +360,20 @@ function projectToUtcIso(
 }
 
 /**
+ * Render a wall-clock `HH:mm` (24h) string as 12-hour with a Spanish
+ * am/pm suffix (e.g. "22:00" → "10:00 p. m."). Presentation only — the
+ * stored/posted value stays 24h.
+ */
+function to12h(time: string): string {
+    const match = /^(\d{1,2}):(\d{2})/.exec(time);
+    if (!match) {
+        return time;
+    }
+    const d = new Date(2000, 0, 1, Number(match[1]), Number(match[2]));
+    return formatDate(d, 'hh:mm a', { locale: es });
+}
+
+/**
  * Read-only confirmation rendered next to the planned-start-time
  * picker so operators can see exactly what's about to be persisted
  * before submitting. Sourced from the contract's TZ when available,
@@ -372,10 +400,68 @@ function ScheduleTimezoneHint({
         <p className="text-xs text-muted-foreground">
             Se guardará como{' '}
             <strong>
-                {date} {time} {timezone}
+                {date} {to12h(time)} {timezone}
             </strong>
             {utcIso ? <> → {utcIso}</> : null}.
         </p>
+    );
+}
+
+/**
+ * Thin wrapper over the shadcn DateTimePicker that speaks the form's
+ * wall-clock `Y-m-d H:i` string contract. The picker's `Date` is treated
+ * as a TZ-naive wall-clock carrier (see wallClockToDate/dateToWallClock);
+ * the backend re-projects it into the service's IANA timezone. Rendered
+ * in 24-hour format with a Spanish, Monday-first calendar.
+ */
+function ScheduleDateTimeField({
+    value,
+    onChange,
+    min,
+    max,
+    disabled,
+    invalid,
+}: {
+    value: string;
+    onChange: (value: string) => void;
+    min?: Date;
+    max?: Date;
+    disabled?: boolean;
+    invalid?: boolean;
+}) {
+    return (
+        <DateTimePicker
+            value={wallClockToDate(value)}
+            onChange={(date) => onChange(dateToWallClock(date))}
+            min={min}
+            max={max}
+            disabled={disabled}
+            locale={es}
+            weekStartsOn={1}
+            use12HourFormat
+            timePicker={{ hour: true, minute: true, second: false }}
+            renderTrigger={({ value: triggerValue }) => (
+                <button
+                    type="button"
+                    disabled={disabled}
+                    aria-invalid={invalid}
+                    className={cn(
+                        'flex h-9 w-full items-center rounded-md border border-input bg-transparent px-3 text-left text-sm shadow-sm',
+                        'focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none',
+                        'disabled:cursor-not-allowed disabled:opacity-50',
+                        !triggerValue && 'text-muted-foreground',
+                        invalid && 'border-destructive',
+                    )}
+                >
+                    <CalendarClock className="mr-2 size-4 shrink-0" />
+                    {triggerValue
+                        ? formatDate(triggerValue, "d 'de' MMM yyyy, hh:mm a", {
+                              locale: es,
+                          })
+                        : 'Seleccionar fecha y hora'}
+                </button>
+            )}
+        />
     );
 }
 
@@ -392,6 +478,12 @@ interface ServiceFormProps {
     municipalities: MunicipalityOption[];
     incidentCount?: number;
     mode: 'create' | 'edit';
+    /**
+     * User-facing consecutive shown read-only at the top of "Datos del
+     * Servicio". In create mode it is the number reserved when the form
+     * opened; in edit mode it is the persisted `service.service_number`.
+     */
+    serviceNumber?: string | null;
     dayStatus?: DayStatus | null;
     canEditExecuted?: boolean;
     isAdmin?: boolean;
@@ -422,6 +514,7 @@ export default function ServiceForm({
     municipalities,
     incidentCount,
     mode,
+    serviceNumber,
     dayStatus,
     canEditExecuted,
     isAdmin,
@@ -500,28 +593,40 @@ export default function ServiceForm({
         (data.destination_address.trim().length > 0 &&
             !data.destination_coordinates);
 
+    // The origin/destination city is required (the precise address/pin is
+    // optional — the backend fills the city centroid when omitted). Block
+    // Save until both cities are picked, mirroring the backend rule.
+    const cityMissing =
+        !data.origin_municipality_id || !data.destination_municipality_id;
+
     useEffect(() => {
-        onAddressCommitInFlight?.(commitCount > 0 || addressNeedsConfirmation);
-    }, [commitCount, addressNeedsConfirmation, onAddressCommitInFlight]);
+        onAddressCommitInFlight?.(
+            commitCount > 0 || addressNeedsConfirmation || cityMissing,
+        );
+    }, [
+        commitCount,
+        addressNeedsConfirmation,
+        cityMissing,
+        onAddressCommitInFlight,
+    ]);
 
     const filteredContracts = useMemo(() => {
-        if (!data.service_date) return contracts;
+        // The service date is now derived from the planned-start datetime
+        // (the standalone "Fecha del Servicio" input was removed).
+        const serviceDate = data.planned_start.slice(0, 10);
+        if (!serviceDate) return contracts;
         // Project the operator's selected wall-clock service start into
         // a UTC instant using the contract's TZ — same pattern Service
         // backend uses. Half-open interval: [start_at, end_at). Falls
-        // back to the day's start in the contract's TZ when the form
-        // doesn't yet have a planned_start_time.
-        const time = data.planned_start_time || '00:00';
+        // back to the day's start in the contract's TZ when only a date
+        // is present.
+        const time = data.planned_start.slice(11, 16) || '00:00';
         return contracts.filter((c) => {
-            const instantIso = projectToUtcIso(
-                data.service_date,
-                time,
-                c.timezone,
-            );
+            const instantIso = projectToUtcIso(serviceDate, time, c.timezone);
             if (!instantIso) return true;
             return c.start_at <= instantIso && c.end_at > instantIso;
         });
-    }, [contracts, data.service_date, data.planned_start_time]);
+    }, [contracts, data.planned_start]);
 
     const driverMissingSocialSecurity =
         selectedDriver &&
@@ -529,38 +634,36 @@ export default function ServiceForm({
             selectedDriver.pension_fund_id === null);
 
     const actualDuration = computeActualDuration(
-        data.actual_start_time,
-        data.actual_end_time,
+        data.actual_start,
+        data.actual_end,
     );
 
     const isClosed = data.service_status === 'closed';
 
-    // Linked Horarios control: planned_end_time is derived from
-    // planned_start_time + planned_duration but lives in local state so
-    // operators can also edit the end-time directly (which recomputes
-    // duration). lastEditedRef breaks the otherwise-circular update.
-    const [plannedEndTime, setPlannedEndTime] = useState<string>(() => {
-        const mins = Number(data.planned_duration);
-        if (!Number.isFinite(mins) || mins <= 0) return '';
-        return addMinutes(data.planned_start_time, mins) ?? '';
-    });
+    // Linked Horarios control: planned_end is derived from planned_start +
+    // planned_duration, but the operator can also edit the end datetime
+    // directly (which recomputes duration). lastEditedRef breaks the
+    // otherwise-circular update. Unlike the legacy time-only control, the
+    // planned end may legitimately fall on a later calendar day than the
+    // start (a window that crosses midnight).
     const lastEditedRef = useRef<'start' | 'duration' | 'end' | null>(null);
 
     useEffect(() => {
         if (lastEditedRef.current === 'end') return;
+        if (!data.planned_start) return;
         const mins = Number(data.planned_duration);
         if (!Number.isFinite(mins) || mins <= 0) {
-            if (plannedEndTime !== '') setPlannedEndTime('');
+            if (data.planned_end !== '') setData('planned_end', '');
             return;
         }
-        const next = addMinutes(data.planned_start_time, mins);
-        if (next && next !== plannedEndTime) setPlannedEndTime(next);
+        const next = addMinutesWc(data.planned_start, mins);
+        if (next && next !== data.planned_end) setData('planned_end', next);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [data.planned_start_time, data.planned_duration]);
+    }, [data.planned_start, data.planned_duration]);
 
     const handlePlannedStartChange = (value: string) => {
         lastEditedRef.current = 'start';
-        setData('planned_start_time', value);
+        setData('planned_start', value);
     };
 
     const handlePlannedDurationChange = (value: string) => {
@@ -570,8 +673,8 @@ export default function ServiceForm({
 
     const handlePlannedEndChange = (value: string) => {
         lastEditedRef.current = 'end';
-        setPlannedEndTime(value);
-        const mins = diffMinutes(data.planned_start_time, value);
+        setData('planned_end', value);
+        const mins = diffMinutesWc(data.planned_start, value);
         if (mins !== null) setData('planned_duration', String(mins));
     };
 
@@ -581,7 +684,19 @@ export default function ServiceForm({
     // is still empty/zero so create-mode starts pre-filled; in edit mode
     // (or after the operator typed something) the existing value wins —
     // the Aplicar button is the explicit revert.
-    const [etaMinutes, setEtaMinutes] = useState<number | null>(null);
+    const [eta, setEta] = useState<{ key: string; minutes: number } | null>(
+        null,
+    );
+    // Derive the visible ETA during render: it applies only when both coords
+    // are present AND match the pair the value was fetched for. This removes
+    // the need to synchronously reset state inside the fetch effect when the
+    // coords become incomplete or change to a different pair.
+    const etaCoordsKey =
+        data.origin_coordinates && data.destination_coordinates
+            ? `${data.origin_coordinates}|${data.destination_coordinates}`
+            : null;
+    const etaMinutes =
+        etaCoordsKey && eta?.key === etaCoordsKey ? eta.minutes : null;
     const etaAbortRef = useRef<AbortController | null>(null);
     // Mirror of data.planned_duration kept in a ref so the async ETA
     // resolver can read the up-to-date value (the .then closure would
@@ -595,8 +710,9 @@ export default function ServiceForm({
         const o = data.origin_coordinates;
         const d = data.destination_coordinates;
         if (!o || !d) {
+            // No synchronous reset needed: `etaMinutes` is derived in render
+            // and is already null when the coords are incomplete.
             etaAbortRef.current?.abort();
-            setEtaMinutes(null);
             return;
         }
         etaAbortRef.current?.abort();
@@ -617,7 +733,7 @@ export default function ServiceForm({
             .then((res: { eta_minutes: number | null } | null) => {
                 if (res && typeof res.eta_minutes === 'number') {
                     const n = res.eta_minutes;
-                    setEtaMinutes(n);
+                    setEta({ key: `${o}|${d}`, minutes: n });
                     const currentRaw = durationRef.current;
                     const currentNum = Number(currentRaw);
                     const isEmpty =
@@ -629,7 +745,7 @@ export default function ServiceForm({
                         setData('planned_duration', String(n));
                     }
                 } else {
-                    setEtaMinutes(null);
+                    setEta(null);
                 }
             })
             .catch((err) => {
@@ -641,7 +757,7 @@ export default function ServiceForm({
                 ) {
                     return;
                 }
-                setEtaMinutes(null);
+                setEta(null);
             });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [data.origin_coordinates, data.destination_coordinates]);
@@ -705,18 +821,49 @@ export default function ServiceForm({
     // `new Date().toISOString().slice(0,10)` used browser-UTC and
     // drifted in the evening Bogotá hours.
     const todayIso = viewerToday(operationTz);
+    // Service date derived from the planned-start datetime (the standalone
+    // date input was removed).
+    const serviceDate = data.planned_start.slice(0, 10);
     const isPastDate =
-        mode === 'create' &&
-        data.service_date !== '' &&
-        data.service_date < todayIso;
+        mode === 'create' && serviceDate !== '' && serviceDate < todayIso;
     const isFutureOrToday =
-        mode === 'create' &&
-        data.service_date !== '' &&
-        data.service_date >= todayIso;
+        mode === 'create' && serviceDate !== '' && serviceDate >= todayIso;
+    // Floor for the planned-start picker: block scheduling an open service
+    // in the past on create. Relaxed for edits and for closed (retroactive)
+    // records, which the backend governs via validateRetroactiveEntry.
+    const plannedStartMinDate =
+        mode === 'create' && !isClosed
+            ? wallClockToDate(`${todayIso} 00:00`)
+            : undefined;
     const requiresRetroactiveJustification =
         mode === 'create' && isPastDate && isClosed;
     const illegalCreateAsClosed =
         mode === 'create' && isFutureOrToday && isClosed;
+
+    // Tolerance window for the actual (executed) times: the backend bounds
+    // each actual instant to [planned_start − 6h, planned_end + 6h] (see
+    // ACTUAL_TOLERANCE_HOURS). The picker bounds below are intentionally
+    // DAY-granular and generous — they grey out days clearly outside the
+    // window (catching gross typos) without ever blocking a valid time on a
+    // boundary day. The precise ±6h check stays server-side, where the
+    // error message lives. Bounds are undefined until the planned window is
+    // set, leaving the pickers unconstrained.
+    const ACTUAL_TOLERANCE_MS = 6 * 60 * 60 * 1000;
+    const plannedStartDate = wallClockToDate(data.planned_start);
+    const plannedEndDate = wallClockToDate(data.planned_end);
+    const actualLowerBound = plannedStartDate
+        ? startOfDay(new Date(plannedStartDate.getTime() - ACTUAL_TOLERANCE_MS))
+        : undefined;
+    const actualUpperBound = plannedEndDate
+        ? endOfDay(new Date(plannedEndDate.getTime() + ACTUAL_TOLERANCE_MS))
+        : undefined;
+    // Actual-end floor: the executed end must follow the executed start, but
+    // keep it day-granular so a same-day later time stays selectable (the
+    // strict end-after-start check is enforced on the server).
+    const actualStartDate = wallClockToDate(data.actual_start);
+    const actualEndMin = actualStartDate
+        ? startOfDay(actualStartDate)
+        : actualLowerBound;
 
     return (
         // One APIProvider for the whole form so both LocationFields and
@@ -797,27 +944,25 @@ export default function ServiceForm({
                             )}
                     </CardTitle>
                 </CardHeader>
-                <CardContent>
-                    <div className="grid gap-4 md:grid-cols-3 md:grid-rows-[auto_1fr_auto]">
-                        <div
-                            className="group/field grid gap-2 md:row-span-3 md:grid-rows-subgrid"
-                            data-error={invalid('service_date')}
-                        >
-                            <Label htmlFor="service_date">
-                                Fecha del Servicio *
-                            </Label>
-                            <Input
-                                id="service_date"
-                                type="date"
-                                value={data.service_date}
-                                aria-invalid={invalid('service_date')}
-                                disabled={isFieldDisabled('service_date')}
-                                onChange={(e) =>
-                                    setData('service_date', e.target.value)
-                                }
-                            />
-                            <FieldFooter error={errors.service_date} />
+                <CardContent className="space-y-4">
+                    {serviceNumber ? (
+                        <div className="grid gap-2">
+                            <Label htmlFor="service_number">Consecutivo</Label>
+                            <div
+                                id="service_number"
+                                className="flex h-9 w-fit items-center rounded-md bg-muted px-3 font-mono text-base font-semibold tracking-wide tabular-nums"
+                                aria-label="Consecutivo del servicio"
+                            >
+                                {serviceNumber}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                {mode === 'create'
+                                    ? 'Reservado al abrir; se confirma al guardar.'
+                                    : 'Identificador del servicio.'}
+                            </p>
                         </div>
+                    ) : null}
+                    <div className="grid gap-4 md:grid-cols-2 md:grid-rows-[auto_1fr_auto]">
                         <div
                             className="group/field grid gap-2 md:row-span-3 md:grid-rows-subgrid"
                             data-error={invalid('contract_id')}
@@ -938,11 +1083,11 @@ export default function ServiceForm({
                                     // any captured actual times so we don't persist
                                     // execution data for a non-executed service.
                                     if (value !== 'closed') {
-                                        if (data.actual_start_time) {
-                                            setData('actual_start_time', '');
+                                        if (data.actual_start) {
+                                            setData('actual_start', '');
                                         }
-                                        if (data.actual_end_time) {
-                                            setData('actual_end_time', '');
+                                        if (data.actual_end) {
+                                            setData('actual_end', '');
                                         }
                                     }
                                 }}
@@ -1185,15 +1330,15 @@ export default function ServiceForm({
                     <CardTitle>Origen y Destino</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid gap-6 md:grid-cols-2">
+                    <div className="grid gap-6 md:grid-cols-2 md:grid-rows-[auto_auto_auto]">
                         <div
-                            className="grid min-w-0 gap-2"
+                            className="group/field grid min-w-0 gap-2 md:row-span-3 md:grid-rows-subgrid"
                             data-error={
                                 invalid('origin_municipality_id') ||
                                 invalid('origin_address')
                             }
                         >
-                            <Label htmlFor="origin_address">Origen</Label>
+                            <Label htmlFor="origin_address">Origen *</Label>
                             <LocationField
                                 id="origin_address"
                                 name="origin_address"
@@ -1254,7 +1399,13 @@ export default function ServiceForm({
                                     errors.origin_address ||
                                     errors.origin_coordinates
                                 }
-                            />
+                            >
+                                {data.origin_municipality_id &&
+                                !data.origin_address.trim() &&
+                                !data.origin_coordinates
+                                    ? 'Se usará el centro de la ciudad como ubicación.'
+                                    : null}
+                            </FieldFooter>
                             <MapPickerModal
                                 instanceLabel="origin"
                                 open={originPickerOpen}
@@ -1311,13 +1462,15 @@ export default function ServiceForm({
                             />
                         </div>
                         <div
-                            className="grid min-w-0 gap-2"
+                            className="group/field grid min-w-0 gap-2 md:row-span-3 md:grid-rows-subgrid"
                             data-error={
                                 invalid('destination_municipality_id') ||
                                 invalid('destination_address')
                             }
                         >
-                            <Label htmlFor="destination_address">Destino</Label>
+                            <Label htmlFor="destination_address">
+                                Destino *
+                            </Label>
                             <LocationField
                                 id="destination_address"
                                 name="destination_address"
@@ -1382,7 +1535,13 @@ export default function ServiceForm({
                                     errors.destination_address ||
                                     errors.destination_coordinates
                                 }
-                            />
+                            >
+                                {data.destination_municipality_id &&
+                                !data.destination_address.trim() &&
+                                !data.destination_coordinates
+                                    ? 'Se usará el centro de la ciudad como ubicación.'
+                                    : null}
+                            </FieldFooter>
                             <MapPickerModal
                                 instanceLabel="destination"
                                 open={destinationPickerOpen}
@@ -1457,8 +1616,8 @@ export default function ServiceForm({
                         slot inside CardHeader. */}
                     <CardAction className="text-right text-xs text-muted-foreground">
                         <ScheduleTimezoneHint
-                            date={data.service_date}
-                            time={data.planned_start_time}
+                            date={serviceDate}
+                            time={data.planned_start.slice(11, 16)}
                             timezone={resolvedTimezone}
                         />
                     </CardAction>
@@ -1467,22 +1626,19 @@ export default function ServiceForm({
                     <div className="grid gap-4 md:grid-cols-3 md:grid-rows-[auto_1fr_auto]">
                         <div
                             className="group/field grid gap-2 md:row-span-3 md:grid-rows-subgrid"
-                            data-error={invalid('planned_start_time')}
+                            data-error={invalid('planned_start')}
                         >
-                            <Label htmlFor="planned_start_time">
-                                Hora Inicio Planificada *
+                            <Label htmlFor="planned_start">
+                                Inicio Planificado *
                             </Label>
-                            <Input
-                                id="planned_start_time"
-                                type="time"
-                                value={data.planned_start_time}
-                                aria-invalid={invalid('planned_start_time')}
-                                disabled={isFieldDisabled('planned_start_time')}
-                                onChange={(e) =>
-                                    handlePlannedStartChange(e.target.value)
-                                }
+                            <ScheduleDateTimeField
+                                value={data.planned_start}
+                                onChange={handlePlannedStartChange}
+                                min={plannedStartMinDate}
+                                disabled={isFieldDisabled('planned_start')}
+                                invalid={invalid('planned_start')}
                             />
-                            <FieldFooter error={errors.planned_start_time} />
+                            <FieldFooter error={errors.planned_start} />
                         </div>
                         <div
                             className="group/field grid gap-2 md:row-span-3 md:grid-rows-subgrid"
@@ -1524,22 +1680,22 @@ export default function ServiceForm({
                                 )}
                             </FieldFooter>
                         </div>
-                        <div className="group/field grid gap-2 md:row-span-3 md:grid-rows-subgrid">
-                            <Label htmlFor="planned_end_time">
-                                Hora Fin Planificada
+                        <div
+                            className="group/field grid gap-2 md:row-span-3 md:grid-rows-subgrid"
+                            data-error={invalid('planned_end')}
+                        >
+                            <Label htmlFor="planned_end">
+                                Fin Planificado *
                             </Label>
-                            <Input
-                                id="planned_end_time"
-                                type="time"
-                                value={plannedEndTime}
+                            <ScheduleDateTimeField
+                                value={data.planned_end}
+                                onChange={handlePlannedEndChange}
+                                min={wallClockToDate(data.planned_start)}
                                 disabled={isFieldDisabled('planned_duration')}
-                                onChange={(e) =>
-                                    handlePlannedEndChange(e.target.value)
-                                }
-                                className="bg-muted/30"
+                                invalid={invalid('planned_end')}
                             />
-                            <FieldFooter>
-                                Derivado de Hora Inicio + Duración
+                            <FieldFooter error={errors.planned_end}>
+                                Derivado de Inicio + Duración
                             </FieldFooter>
                         </div>
                     </div>
@@ -1548,51 +1704,39 @@ export default function ServiceForm({
                         <div className="grid gap-4 md:grid-cols-3 md:grid-rows-[auto_1fr_auto]">
                             <div
                                 className="group/field grid gap-2 md:row-span-3 md:grid-rows-subgrid"
-                                data-error={invalid('actual_start_time')}
+                                data-error={invalid('actual_start')}
                             >
-                                <Label htmlFor="actual_start_time">
-                                    Hora Inicio Real *
+                                <Label htmlFor="actual_start">
+                                    Inicio Real *
                                 </Label>
-                                <Input
-                                    id="actual_start_time"
-                                    type="time"
-                                    value={data.actual_start_time}
-                                    aria-invalid={invalid('actual_start_time')}
-                                    disabled={isFieldDisabled(
-                                        'actual_start_time',
-                                    )}
-                                    onChange={(e) =>
-                                        setData(
-                                            'actual_start_time',
-                                            e.target.value,
-                                        )
+                                <ScheduleDateTimeField
+                                    value={data.actual_start}
+                                    onChange={(value) =>
+                                        setData('actual_start', value)
                                     }
+                                    min={actualLowerBound}
+                                    max={actualUpperBound}
+                                    disabled={isFieldDisabled('actual_start')}
+                                    invalid={invalid('actual_start')}
                                 />
-                                <FieldFooter error={errors.actual_start_time} />
+                                <FieldFooter error={errors.actual_start} />
                             </div>
                             <div
                                 className="group/field grid gap-2 md:row-span-3 md:grid-rows-subgrid"
-                                data-error={invalid('actual_end_time')}
+                                data-error={invalid('actual_end')}
                             >
-                                <Label htmlFor="actual_end_time">
-                                    Hora Fin Real *
-                                </Label>
-                                <Input
-                                    id="actual_end_time"
-                                    type="time"
-                                    value={data.actual_end_time}
-                                    aria-invalid={invalid('actual_end_time')}
-                                    disabled={isFieldDisabled(
-                                        'actual_end_time',
-                                    )}
-                                    onChange={(e) =>
-                                        setData(
-                                            'actual_end_time',
-                                            e.target.value,
-                                        )
+                                <Label htmlFor="actual_end">Fin Real *</Label>
+                                <ScheduleDateTimeField
+                                    value={data.actual_end}
+                                    onChange={(value) =>
+                                        setData('actual_end', value)
                                     }
+                                    min={actualEndMin}
+                                    max={actualUpperBound}
+                                    disabled={isFieldDisabled('actual_end')}
+                                    invalid={invalid('actual_end')}
                                 />
-                                <FieldFooter error={errors.actual_end_time} />
+                                <FieldFooter error={errors.actual_end} />
                             </div>
                             <div className="group/field grid gap-2 md:row-span-3 md:grid-rows-subgrid">
                                 <Label>Duración Real</Label>

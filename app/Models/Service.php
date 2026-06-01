@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Concerns\HasTimezone;
 use App\Enums\PaymentMethod;
 use App\Enums\ServiceStatus;
+use App\Support\Tz;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -28,6 +30,7 @@ class Service extends Model
      * @var array
      */
     protected $fillable = [
+        'service_number',
         'contract_id',
         'vehicle_id',
         'driver_id',
@@ -46,7 +49,7 @@ class Service extends Model
         'destination_coordinates_accuracy',
         'destination_place_id',
         'planned_start_at',
-        'planned_duration',
+        'planned_end_at',
         'actual_start_at',
         'actual_end_at',
         'timezone',
@@ -72,9 +75,15 @@ class Service extends Model
      */
     protected $appends = [
         'service_date',
+        'planned_duration',
         'planned_start_local',
+        'planned_end_local',
         'actual_start_local',
         'actual_end_local',
+        'planned_start_local_datetime',
+        'planned_end_local_datetime',
+        'actual_start_local_datetime',
+        'actual_end_local_datetime',
     ];
 
     /**
@@ -86,6 +95,7 @@ class Service extends Model
     {
         return [
             'id' => 'integer',
+            'service_number' => 'string',
             'contract_id' => 'integer',
             'vehicle_id' => 'integer',
             'driver_id' => 'integer',
@@ -101,6 +111,7 @@ class Service extends Model
             // instant stable in either driver.
             'service_date_local' => 'immutable_date',
             'planned_start_at' => 'immutable_datetime:Y-m-d H:i:sP',
+            'planned_end_at' => 'immutable_datetime:Y-m-d H:i:sP',
             'actual_start_at' => 'immutable_datetime:Y-m-d H:i:sP',
             'actual_end_at' => 'immutable_datetime:Y-m-d H:i:sP',
             'timezone' => 'string',
@@ -114,6 +125,36 @@ class Service extends Model
             'route_duration_s' => 'integer',
             'route_fetched_at' => 'immutable_datetime:Y-m-d H:i:sP',
         ];
+    }
+
+    /**
+     * Reserve the next monotonic service consecutive for the given calendar
+     * year, formatted as `SRV-####-YYYY`, and durably advance the counter.
+     *
+     * The number is reserved *before* the Service row exists (when the create
+     * form opens), so we cannot rely on a COUNT()/MAX() of the services table
+     * the way invoices do — two concurrent openings would derive the same
+     * value. Instead we lock the per-year row in `service_number_sequences`
+     * inside a transaction; the UNIQUE constraint on `services.service_number`
+     * is the final guard against the rare double-submit.
+     *
+     * Defaults the year to the current year in the operation timezone so the
+     * yearly rollover doesn't depend on the server's UTC date.
+     */
+    public static function reserveNextNumber(?int $year = null): string
+    {
+        $year ??= (int) Carbon::now(Tz::operation())->format('Y');
+
+        return DB::transaction(function () use ($year): string {
+            $sequence = ServiceNumberSequence::query()
+                ->lockForUpdate()
+                ->firstOrCreate(['year' => $year], ['last_number' => 0]);
+
+            $next = $sequence->last_number + 1;
+            $sequence->update(['last_number' => $next]);
+
+            return sprintf('SRV-%04d-%d', $next, $year);
+        });
     }
 
     protected static function booted(): void
@@ -193,6 +234,63 @@ class Service extends Model
     }
 
     /**
+     * Wall-clock planned end time (HH:mm) projected in the service's timezone.
+     */
+    public function getPlannedEndLocalAttribute(): ?string
+    {
+        return $this->planned_end_at?->setTimezone($this->resolveTimezone())->format('H:i');
+    }
+
+    /**
+     * Planned duration in minutes, derived from the planned window. Not a
+     * stored column — `planned_end_at` is the source of truth. Returns null
+     * until both endpoints are set.
+     */
+    public function getPlannedDurationAttribute(): ?int
+    {
+        if (! $this->planned_start_at instanceof \DateTimeInterface
+            || ! $this->planned_end_at instanceof \DateTimeInterface) {
+            return null;
+        }
+
+        return (int) Carbon::instance($this->planned_start_at)
+            ->diffInMinutes(Carbon::instance($this->planned_end_at), false);
+    }
+
+    /**
+     * Wall-clock planned start datetime (Y-m-d H:i) in the service's timezone.
+     * Consumed by the create/edit form's datetime pickers.
+     */
+    public function getPlannedStartLocalDatetimeAttribute(): ?string
+    {
+        return $this->planned_start_at?->setTimezone($this->resolveTimezone())->format('Y-m-d H:i');
+    }
+
+    /**
+     * Wall-clock planned end datetime (Y-m-d H:i) in the service's timezone.
+     */
+    public function getPlannedEndLocalDatetimeAttribute(): ?string
+    {
+        return $this->planned_end_at?->setTimezone($this->resolveTimezone())->format('Y-m-d H:i');
+    }
+
+    /**
+     * Wall-clock actual start datetime (Y-m-d H:i) in the service's timezone.
+     */
+    public function getActualStartLocalDatetimeAttribute(): ?string
+    {
+        return $this->actual_start_at?->setTimezone($this->resolveTimezone())->format('Y-m-d H:i');
+    }
+
+    /**
+     * Wall-clock actual end datetime (Y-m-d H:i) in the service's timezone.
+     */
+    public function getActualEndLocalDatetimeAttribute(): ?string
+    {
+        return $this->actual_end_at?->setTimezone($this->resolveTimezone())->format('Y-m-d H:i');
+    }
+
+    /**
      * Wall-clock actual start time (HH:mm) projected in the service's timezone.
      */
     public function getActualStartLocalAttribute(): ?string
@@ -262,6 +360,12 @@ class Service extends Model
     {
         $instant = $this->wallClockToInstant($value);
         $this->setAttribute('actual_start_at', $instant?->utc());
+    }
+
+    public function setPlannedEndTimeAttribute(mixed $value, ?string $dateOverride = null): void
+    {
+        $instant = $this->wallClockToInstant($value, $dateOverride);
+        $this->setAttribute('planned_end_at', $instant?->utc());
     }
 
     public function setActualEndTimeAttribute(mixed $value): void
@@ -393,7 +497,7 @@ class Service extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['id', 'contract_id', 'vehicle_id', 'driver_id', 'invoice_id', 'service_date_local', 'origin_municipality_id', 'origin_address', 'origin_coordinates', 'origin_coordinates_source', 'origin_coordinates_accuracy', 'origin_place_id', 'destination_municipality_id', 'destination_address', 'destination_coordinates', 'destination_coordinates_source', 'destination_coordinates_accuracy', 'destination_place_id', 'planned_start_at', 'planned_duration', 'actual_start_at', 'actual_end_at', 'timezone', 'unit_value', 'quantity', 'billing_groups', 'payment_method', 'service_status', 'manual_entry_justification', 'driver_declined_at', 'driver_decline_reason']);
+            ->logOnly(['id', 'service_number', 'contract_id', 'vehicle_id', 'driver_id', 'invoice_id', 'service_date_local', 'origin_municipality_id', 'origin_address', 'origin_coordinates', 'origin_coordinates_source', 'origin_coordinates_accuracy', 'origin_place_id', 'destination_municipality_id', 'destination_address', 'destination_coordinates', 'destination_coordinates_source', 'destination_coordinates_accuracy', 'destination_place_id', 'planned_start_at', 'planned_end_at', 'actual_start_at', 'actual_end_at', 'timezone', 'unit_value', 'quantity', 'billing_groups', 'payment_method', 'service_status', 'manual_entry_justification', 'driver_declined_at', 'driver_decline_reason']);
     }
 
     /**
@@ -401,6 +505,6 @@ class Service extends Model
      */
     public function searchableColumns(): array
     {
-        return ['origin_address', 'destination_address', ['driver.first_name', 'driver.first_lastname']];
+        return ['service_number', 'origin_address', 'destination_address', ['driver.first_name', 'driver.first_lastname']];
     }
 }

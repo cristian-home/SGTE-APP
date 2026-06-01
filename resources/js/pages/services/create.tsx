@@ -15,6 +15,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
+import { scrollToFirstError } from '@/lib/scroll-to-first-error';
 import services from '@/routes/services';
 import { type BreadcrumbItem } from '@/types';
 
@@ -29,6 +30,7 @@ export default function ServicesCreate({
     contracts,
     municipalities,
     prefill,
+    reservedServiceNumber,
     executedDates = [],
     canBypassExecutedDay = false,
     thirdParties = [],
@@ -38,6 +40,7 @@ export default function ServicesCreate({
     drivers: DriverOption[];
     contracts: ContractOption[];
     municipalities: MunicipalityOption[];
+    reservedServiceNumber: string;
     prefill?: {
         vehicle_id?: string;
         planned_start_time?: string;
@@ -48,11 +51,17 @@ export default function ServicesCreate({
     thirdParties?: ThirdPartyOption[];
     documentTypes?: DocumentTypeOption[];
 }) {
+    // The planner can prefill a clicked slot (date + time); combine them
+    // into the single planned-start wall-clock the form now uses.
+    const prefillStart = prefill?.service_date
+        ? `${prefill.service_date} ${prefill.planned_start_time ?? '00:00'}`
+        : '';
+
     const { data, setData, post, processing, errors } = useForm({
+        service_number: reservedServiceNumber,
         contract_id: '',
         vehicle_id: prefill?.vehicle_id ?? '',
         driver_id: '',
-        service_date: prefill?.service_date ?? '',
         origin_municipality_id: '',
         origin_address: '',
         origin_coordinates: '',
@@ -65,10 +74,11 @@ export default function ServicesCreate({
         destination_coordinates_source: '',
         destination_coordinates_accuracy: '',
         destination_place_id: '',
-        planned_start_time: prefill?.planned_start_time ?? '',
+        planned_start: prefillStart,
+        planned_end: '',
         planned_duration: '',
-        actual_start_time: '',
-        actual_end_time: '',
+        actual_start: '',
+        actual_end: '',
         unit_value: '',
         quantity: '1',
         billing_groups: [] as string[],
@@ -80,10 +90,10 @@ export default function ServicesCreate({
 
     function submit(e: React.FormEvent) {
         e.preventDefault();
-        post(ServiceController.store().url);
+        // The Save button stays enabled; on a validation error we surface the
+        // inline messages and bring the first offending field into view.
+        post(ServiceController.store().url, { onError: scrollToFirstError });
     }
-
-    const [addressCommitInFlight, setAddressCommitInFlight] = useState(false);
 
     // BUG-10 — show warning + reveal justification when the picked service
     // date is on an EJECUTADO day. Backend (BUG-03 fix) requires Admin or
@@ -92,8 +102,9 @@ export default function ServicesCreate({
         () => new Set(executedDates),
         [executedDates],
     );
-    const isExecutedDay = data.service_date
-        ? executedDateSet.has(data.service_date)
+    const serviceDate = data.planned_start.slice(0, 10);
+    const isExecutedDay = serviceDate
+        ? executedDateSet.has(serviceDate)
         : false;
 
     // Cascade: contract create dialog launched from the "+" button next to
@@ -128,7 +139,7 @@ export default function ServicesCreate({
                         contracts={contracts}
                         municipalities={municipalities}
                         mode="create"
-                        onAddressCommitInFlight={setAddressCommitInFlight}
+                        serviceNumber={reservedServiceNumber}
                         onCreateContractClick={
                             canCascadeContract
                                 ? () => setContractDialogOpen(true)
@@ -173,7 +184,6 @@ export default function ServicesCreate({
                             type="submit"
                             disabled={
                                 processing ||
-                                addressCommitInFlight ||
                                 (isExecutedDay && !canBypassExecutedDay)
                             }
                         >

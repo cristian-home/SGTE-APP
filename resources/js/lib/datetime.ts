@@ -220,3 +220,45 @@ export function formatTimestampInViewerTz(
         timeZone: opts?.viewerTzOverride,
     }).format(date);
 }
+
+/**
+ * Bridge between a wall-clock `Y-m-d H:i` string and a JS `Date` for the
+ * datetime picker. The `Date` is treated purely as a wall-clock carrier:
+ * its *local* components mirror the typed value 1:1, and the backend
+ * re-projects that wall-clock into the service's IANA timezone. This is
+ * the same TZ-naive contract the legacy `<input type="time">` controls
+ * used — no double timezone conversion happens on the client.
+ *
+ * Returns `undefined` for empty or unparseable input. Accepts both a
+ * space and a `T` separator.
+ */
+export function wallClockToDate(
+    value: string | null | undefined,
+): Date | undefined {
+    if (!value) {
+        return undefined;
+    }
+    const match = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/.exec(value);
+    if (!match) {
+        return undefined;
+    }
+    const [, y, mo, d, h, mi] = match.map(Number);
+    const date = new Date(y, mo - 1, d, h, mi, 0, 0);
+    return Number.isNaN(date.getTime()) ? undefined : date;
+}
+
+/**
+ * Inverse of {@link wallClockToDate}: format a picker `Date` back into the
+ * `Y-m-d H:i` wall-clock string the form posts. Reads *local* components
+ * so the round-trip is lossless and TZ-naive.
+ */
+export function dateToWallClock(date: Date | null | undefined): string {
+    if (!date || Number.isNaN(date.getTime())) {
+        return '';
+    }
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return (
+        `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+        ` ${pad(date.getHours())}:${pad(date.getMinutes())}`
+    );
+}

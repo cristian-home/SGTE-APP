@@ -6,7 +6,7 @@ import {
 } from '@/components/data-table';
 import { Badge } from '@/components/ui/badge';
 import { Permission } from '@/enums/Permission';
-import { formatEventDate } from '@/lib/datetime';
+import { formatEventDateTime, formatTimestampInViewerTz } from '@/lib/datetime';
 import services from '@/routes/services';
 
 import type { ColumnDef } from '@tanstack/react-table';
@@ -31,23 +31,23 @@ function formatCurrency(value: string | number): string {
     }).format(Number(value));
 }
 
+function formatDateTime(at: string | null, tz: string): string {
+    return at ? formatEventDateTime(at, tz, { dateStyle: 'medium' }) : '';
+}
+
 export const columns: ColumnDef<Service, unknown>[] = [
     {
-        accessorKey: 'service_date_local',
-        meta: { label: 'Fecha' },
+        accessorKey: 'service_number',
+        meta: { label: 'Consecutivo' },
         header: ({ column }) => (
-            <DataTableColumnHeader column={column} title="Fecha" />
+            <DataTableColumnHeader column={column} title="Consecutivo" />
         ),
         cell: ({ row }) => (
             <Link
                 href={services.show(row.original.id).url}
-                className="text-primary hover:underline"
+                className="font-mono text-primary tabular-nums hover:underline"
             >
-                {formatEventDate(
-                    row.original.planned_start_at,
-                    row.original.timezone,
-                    { dateStyle: 'medium' },
-                )}
+                {row.original.service_number}
             </Link>
         ),
     },
@@ -88,6 +88,66 @@ export const columns: ColumnDef<Service, unknown>[] = [
         },
     },
     {
+        accessorKey: 'planned_start_at',
+        meta: { label: 'Inicio planificado' },
+        header: ({ column }) => (
+            <DataTableColumnHeader column={column} title="Inicio plan." />
+        ),
+        cell: ({ row }) => (
+            <span className="whitespace-nowrap tabular-nums">
+                {formatDateTime(
+                    row.original.planned_start_at,
+                    row.original.timezone,
+                ) || <span className="text-muted-foreground">—</span>}
+            </span>
+        ),
+    },
+    {
+        accessorKey: 'planned_end_at',
+        meta: { label: 'Fin planificado' },
+        header: ({ column }) => (
+            <DataTableColumnHeader column={column} title="Fin plan." />
+        ),
+        cell: ({ row }) => (
+            <span className="whitespace-nowrap tabular-nums">
+                {formatDateTime(
+                    row.original.planned_end_at,
+                    row.original.timezone,
+                ) || <span className="text-muted-foreground">—</span>}
+            </span>
+        ),
+    },
+    {
+        accessorKey: 'actual_start_at',
+        meta: { label: 'Inicio real' },
+        header: ({ column }) => (
+            <DataTableColumnHeader column={column} title="Inicio real" />
+        ),
+        cell: ({ row }) => (
+            <span className="whitespace-nowrap tabular-nums">
+                {formatDateTime(
+                    row.original.actual_start_at,
+                    row.original.timezone,
+                ) || <span className="text-muted-foreground">—</span>}
+            </span>
+        ),
+    },
+    {
+        accessorKey: 'actual_end_at',
+        meta: { label: 'Fin real' },
+        header: ({ column }) => (
+            <DataTableColumnHeader column={column} title="Fin real" />
+        ),
+        cell: ({ row }) => (
+            <span className="whitespace-nowrap tabular-nums">
+                {formatDateTime(
+                    row.original.actual_end_at,
+                    row.original.timezone,
+                ) || <span className="text-muted-foreground">—</span>}
+            </span>
+        ),
+    },
+    {
         accessorKey: 'unit_value',
         meta: { label: 'Valor' },
         header: ({ column }) => (
@@ -121,6 +181,22 @@ export const columns: ColumnDef<Service, unknown>[] = [
         cell: ({ row }) =>
             paymentMethodLabels[row.original.payment_method] ??
             row.original.payment_method,
+    },
+    {
+        accessorKey: 'created_at',
+        meta: { label: 'Creado' },
+        header: ({ column }) => (
+            <DataTableColumnHeader column={column} title="Creado" />
+        ),
+        cell: ({ row }) => (
+            <span className="whitespace-nowrap text-muted-foreground tabular-nums">
+                {row.original.created_at
+                    ? formatTimestampInViewerTz(row.original.created_at, {
+                          dateStyle: 'medium',
+                      })
+                    : '—'}
+            </span>
+        ),
     },
     {
         id: 'actions',

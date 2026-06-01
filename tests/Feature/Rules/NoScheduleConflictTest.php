@@ -25,12 +25,20 @@ beforeEach(function (): void {
 
 function validServiceData(array $overrides = []): array
 {
+    // Accept the legacy `service_date` + `planned_start_time` override keys
+    // and fold them into the single `planned_start` wall-clock datetime the
+    // request now expects, so existing callsites stay terse.
+    $date = $overrides['service_date'] ?? Carbon::now()->toDateString();
+    $time = $overrides['planned_start_time'] ?? '10:00';
+    unset($overrides['service_date'], $overrides['planned_start_time']);
+
     return array_merge([
         'contract_id' => test()->contract->id,
         'vehicle_id' => test()->vehicle->id,
         'driver_id' => test()->driver->id,
-        'service_date' => Carbon::now()->toDateString(),
-        'planned_start_time' => '10:00',
+        'origin_municipality_id' => \App\Models\Municipality::factory()->create()->id,
+        'destination_municipality_id' => \App\Models\Municipality::factory()->create()->id,
+        'planned_start' => "{$date} {$time}",
         'planned_duration' => 60,
         'unit_value' => 100000,
         'quantity' => 1,
