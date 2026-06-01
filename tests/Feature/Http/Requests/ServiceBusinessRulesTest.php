@@ -3,7 +3,6 @@
 namespace Tests\Feature\Http\Requests;
 
 use App\Enums\LicenseCategory;
-use App\Enums\VehicleType;
 use App\Models\Contract;
 use App\Models\Driver;
 use App\Models\User;
@@ -120,7 +119,7 @@ test('rejects store when driver license category is incompatible with vehicle ty
     // Bus requires C2 or C3; a C1 license should be rejected.
     $vehicle = Vehicle::factory()->create([
         'is_third_party' => false,
-        'type' => VehicleType::Bus,
+        'vehicle_type_id' => vtid('bus'),
     ]);
     $driver = Driver::factory()->create([
         'license_category' => LicenseCategory::C1,
@@ -138,7 +137,7 @@ test('accepts store when driver license category is compatible with vehicle type
     // C1 is accepted for Automobile.
     $vehicle = Vehicle::factory()->create([
         'is_third_party' => false,
-        'type' => VehicleType::Automobile,
+        'vehicle_type_id' => vtid('automobile'),
     ]);
     $driver = Driver::factory()->create([
         'license_category' => LicenseCategory::C1,
@@ -157,7 +156,7 @@ test('accepts store for a Microbús with a compatible driver license', function 
     // license map that originally omitted the Microbús type.
     $vehicle = Vehicle::factory()->create([
         'is_third_party' => false,
-        'type' => VehicleType::Microbus,
+        'vehicle_type_id' => vtid('microbus'),
     ]);
     $driver = Driver::factory()->create([
         'license_category' => LicenseCategory::C1,

@@ -3,7 +3,6 @@
 namespace App\Support;
 
 use App\Enums\LicenseCategory;
-use App\Enums\VehicleType;
 use App\Models\Contract;
 use App\Models\Driver;
 use App\Models\Vehicle;
@@ -22,21 +21,6 @@ use Illuminate\Support\Carbon;
  */
 class ServiceDocumentChecks
 {
-    /**
-     * REQ-005 driver license category vs vehicle type compatibility.
-     * Best-guess mapping per Colombian licensing rules (see
-     * project_license_category_map memory). Update when client rules.
-     *
-     * @var array<string, list<string>>
-     */
-    public const LICENSE_CATEGORY_MAP = [
-        VehicleType::Bus->value => [LicenseCategory::C2->value, LicenseCategory::C3->value],
-        VehicleType::Buseta->value => [LicenseCategory::C2->value, LicenseCategory::C3->value],
-        VehicleType::Microbus->value => [LicenseCategory::C1->value, LicenseCategory::C2->value, LicenseCategory::C3->value],
-        VehicleType::Van->value => [LicenseCategory::C1->value, LicenseCategory::C2->value, LicenseCategory::C3->value],
-        VehicleType::Automobile->value => [LicenseCategory::C1->value, LicenseCategory::C2->value, LicenseCategory::C3->value],
-    ];
-
     public static function contractCoversDate(Contract $contract, Carbon $date): ?string
     {
         if (! $contract->active) {
@@ -116,14 +100,13 @@ class ServiceDocumentChecks
             $errors[] = 'El conductor no tiene seguridad social activa.';
         }
 
-        if ($vehicle->type !== null && $driver->license_category !== null) {
-            $vehicleType = $vehicle->type instanceof VehicleType ? $vehicle->type->value : (string) $vehicle->type;
-            $allowed = self::LICENSE_CATEGORY_MAP[$vehicleType] ?? [];
+        $allowed = $vehicle->vehicleType?->allowed_license_categories ?? [];
+        if ($allowed !== [] && $driver->license_category !== null) {
             $driverCategory = $driver->license_category instanceof LicenseCategory
                 ? $driver->license_category->value
                 : (string) $driver->license_category;
 
-            if ($allowed !== [] && ! in_array($driverCategory, $allowed, true)) {
+            if (! in_array($driverCategory, $allowed, true)) {
                 $errors[] = "La categoría de licencia {$driverCategory} del conductor no es compatible con el tipo de vehículo.";
             }
         }

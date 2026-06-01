@@ -49,3 +49,13 @@ function something()
 {
     // ..
 }
+
+/**
+ * Resolve a seeded vehicle_types row id by its code (bus, buseta,
+ * microbus, van, automobile). The catalog is seeded by the
+ * create_vehicle_types_table_and_link_vehicles migration.
+ */
+function vtid(string $code): int
+{
+    return App\Models\VehicleType::query()->where('code', $code)->value('id');
+}

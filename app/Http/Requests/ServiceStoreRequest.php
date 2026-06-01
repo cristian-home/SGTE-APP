@@ -8,7 +8,6 @@ use App\Enums\PaymentMethod;
 use App\Enums\Permission;
 use App\Enums\Role;
 use App\Enums\ServiceStatus;
-use App\Enums\VehicleType;
 use App\Models\Contract;
 use App\Models\DayStatus;
 use App\Models\Driver;
@@ -30,21 +29,6 @@ class ServiceStoreRequest extends FormRequest
      * (e.g. a wrong month). Mirrored on the frontend pickers' min/max.
      */
     protected const ACTUAL_TOLERANCE_HOURS = 6;
-
-    /**
-     * License ↔ vehicle-type compatibility for Colombian public passenger transport.
-     * Keys are vehicle types, values are the license categories legally authorized
-     * to drive them for public passenger transport.
-     *
-     * @var array<string, list<string>>
-     */
-    protected const LICENSE_CATEGORY_MAP = [
-        VehicleType::Bus->value => [LicenseCategory::C2->value, LicenseCategory::C3->value],
-        VehicleType::Buseta->value => [LicenseCategory::C2->value, LicenseCategory::C3->value],
-        VehicleType::Microbus->value => [LicenseCategory::C1->value, LicenseCategory::C2->value, LicenseCategory::C3->value],
-        VehicleType::Van->value => [LicenseCategory::C1->value, LicenseCategory::C2->value, LicenseCategory::C3->value],
-        VehicleType::Automobile->value => [LicenseCategory::C1->value, LicenseCategory::C2->value, LicenseCategory::C3->value],
-    ];
 
     /**
      * Determine if the user is authorized to make this request.
@@ -559,16 +543,15 @@ class ServiceStoreRequest extends FormRequest
         }
 
         if ($this->filled('vehicle_id') && $driver->license_category !== null) {
-            $vehicle = Vehicle::find($this->input('vehicle_id'));
+            $vehicle = Vehicle::with('vehicleType')->find($this->input('vehicle_id'));
+            $allowed = $vehicle?->vehicleType?->allowed_license_categories ?? [];
 
-            if ($vehicle && $vehicle->type !== null) {
-                $vehicleType = $vehicle->type instanceof VehicleType ? $vehicle->type->value : (string) $vehicle->type;
-                $allowed = self::LICENSE_CATEGORY_MAP[$vehicleType] ?? [];
+            if ($allowed !== []) {
                 $driverCategory = $driver->license_category instanceof LicenseCategory
                     ? $driver->license_category->value
                     : (string) $driver->license_category;
 
-                if ($allowed !== [] && ! in_array($driverCategory, $allowed, true)) {
+                if (! in_array($driverCategory, $allowed, true)) {
                     $validator->errors()->add(
                         'driver_id',
                         "La categoria de licencia {$driverCategory} del conductor no es compatible con el tipo de vehiculo."

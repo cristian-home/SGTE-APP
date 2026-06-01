@@ -3,10 +3,10 @@
 namespace Database\Seeders;
 
 use App\Enums\VehicleStatus;
-use App\Enums\VehicleType;
 use App\Models\Municipality;
 use App\Models\ThirdParty;
 use App\Models\Vehicle;
+use App\Models\VehicleType;
 use Illuminate\Database\Seeder;
 
 class VehicleSeeder extends Seeder
@@ -24,6 +24,8 @@ class VehicleSeeder extends Seeder
         $cali = Municipality::where('code', '76001')->first();
         $cartagena = Municipality::where('code', '13001')->first();
 
+        $typeId = fn (string $code): ?int => VehicleType::where('code', $code)->value('id');
+
         $vehicles = [
             [
                 'internal_code' => 'V-001',
@@ -32,7 +34,7 @@ class VehicleSeeder extends Seeder
                 'brand' => 'Chevrolet',
                 'line' => 'NKR',
                 'model_year' => 2022,
-                'type' => VehicleType::Buseta->value,
+                'vehicle_type_id' => $typeId('buseta'),
                 'engine_number' => 'CHV2022NKR001',
                 'chassis_number' => '9GBNG5CD0N1234567',
                 'capacity' => 19,
@@ -51,7 +53,7 @@ class VehicleSeeder extends Seeder
                 'brand' => 'Toyota',
                 'line' => 'Coaster',
                 'model_year' => 2023,
-                'type' => VehicleType::Bus->value,
+                'vehicle_type_id' => $typeId('bus'),
                 'engine_number' => 'TYT2023CST002',
                 'chassis_number' => 'JTGFB518XJ1234568',
                 'capacity' => 30,
@@ -70,7 +72,7 @@ class VehicleSeeder extends Seeder
                 'brand' => 'Hyundai',
                 'line' => 'County',
                 'model_year' => 2021,
-                'type' => VehicleType::Buseta->value,
+                'vehicle_type_id' => $typeId('buseta'),
                 'engine_number' => 'HYD2021CNT003',
                 'chassis_number' => 'KMJHG51HPJU234569',
                 'capacity' => 25,
@@ -89,7 +91,7 @@ class VehicleSeeder extends Seeder
                 'brand' => 'Mercedes-Benz',
                 'line' => 'Sprinter',
                 'model_year' => 2024,
-                'type' => VehicleType::Van->value,
+                'vehicle_type_id' => $typeId('van'),
                 'engine_number' => 'MBZ2024SPR004',
                 'chassis_number' => 'WDB9066331S234570',
                 'capacity' => 15,
@@ -108,7 +110,7 @@ class VehicleSeeder extends Seeder
                 'brand' => 'Kia',
                 'line' => 'Pregio',
                 'model_year' => 2020,
-                'type' => VehicleType::Van->value,
+                'vehicle_type_id' => $typeId('van'),
                 'engine_number' => 'KIA2020PRG005',
                 'chassis_number' => 'KNCSD81126K234571',
                 'capacity' => 12,
@@ -127,7 +129,7 @@ class VehicleSeeder extends Seeder
                 'brand' => 'Renault',
                 'line' => 'Master',
                 'model_year' => 2023,
-                'type' => VehicleType::Van->value,
+                'vehicle_type_id' => $typeId('van'),
                 'engine_number' => 'RNT2023MST006',
                 'chassis_number' => 'VF1MA000661234572',
                 'capacity' => 16,
@@ -146,7 +148,7 @@ class VehicleSeeder extends Seeder
                 'brand' => 'Volkswagen',
                 'line' => 'Crafter',
                 'model_year' => 2022,
-                'type' => VehicleType::Van->value,
+                'vehicle_type_id' => $typeId('van'),
                 'engine_number' => 'VWG2022CFT007',
                 'chassis_number' => 'WV1ZZZ2EZL1234573',
                 'capacity' => 18,
@@ -165,7 +167,7 @@ class VehicleSeeder extends Seeder
                 'brand' => 'Iveco',
                 'line' => 'Daily',
                 'model_year' => 2024,
-                'type' => VehicleType::Buseta->value,
+                'vehicle_type_id' => $typeId('buseta'),
                 'engine_number' => 'IVC2024DLY008',
                 'chassis_number' => 'ZCFC5081005234574',
                 'capacity' => 22,
@@ -184,7 +186,7 @@ class VehicleSeeder extends Seeder
                 'brand' => 'Foton',
                 'line' => 'View',
                 'model_year' => 2021,
-                'type' => VehicleType::Buseta->value,
+                'vehicle_type_id' => $typeId('buseta'),
                 'engine_number' => 'FTN2021VW009',
                 'chassis_number' => 'LZWADAGA9MA234575',
                 'capacity' => 20,
@@ -203,7 +205,7 @@ class VehicleSeeder extends Seeder
                 'brand' => 'Nissan',
                 'line' => 'Civilian',
                 'model_year' => 2019,
-                'type' => VehicleType::Bus->value,
+                'vehicle_type_id' => $typeId('bus'),
                 'engine_number' => 'NSN2019CVL010',
                 'chassis_number' => 'JN1CW0EW8K1234576',
                 'capacity' => 28,
