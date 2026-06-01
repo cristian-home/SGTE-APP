@@ -87,6 +87,7 @@ type ShowInvoice = Pick<
 
 interface RecentServiceRow {
     id: number;
+    service_number: string;
     service_date: string;
     service_status: string;
     unit_value: string | null;
@@ -443,6 +444,7 @@ export default function InvoicesShow({
                             <Table>
                                 <TableHeader>
                                     <TableRow>
+                                        <TableHead>Consecutivo</TableHead>
                                         <TableHead>Fecha</TableHead>
                                         <TableHead>Contrato</TableHead>
                                         <TableHead>Vehículo</TableHead>
@@ -462,12 +464,15 @@ export default function InvoicesShow({
                                                             service.id,
                                                         ).url
                                                     }
-                                                    className="text-primary hover:underline"
+                                                    className="font-mono text-primary tabular-nums hover:underline"
                                                 >
-                                                    {formatDate(
-                                                        service.service_date,
-                                                    )}
+                                                    {service.service_number}
                                                 </Link>
+                                            </TableCell>
+                                            <TableCell>
+                                                {formatDate(
+                                                    service.service_date,
+                                                )}
                                             </TableCell>
                                             <TableCell>
                                                 {service.contract ? (

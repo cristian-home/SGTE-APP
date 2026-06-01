@@ -38,6 +38,7 @@ class ServiceController extends Controller
             ->allowedIncludes(['invoice'])
             ->allowedFilters([
                 AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
+                AllowedFilter::partial('service_number'),
                 AllowedFilter::callback('service_date', fn (Builder $query, $value) => $query->whereDate('service_date_local', $value)),
                 AllowedFilter::exact('origin_municipality_id'),
                 AllowedFilter::exact('destination_municipality_id'),
@@ -48,8 +49,23 @@ class ServiceController extends Controller
                 AllowedFilter::exact('vehicle_id'),
                 AllowedFilter::callback('date_from', fn (Builder $query, $value) => $query->whereDate('service_date_local', '>=', $value)),
                 AllowedFilter::callback('date_to', fn (Builder $query, $value) => $query->whereDate('service_date_local', '<=', $value)),
+                ...$this->dateRangeFilters('planned_start', 'planned_start_at'),
+                ...$this->dateRangeFilters('planned_end', 'planned_end_at'),
+                ...$this->dateRangeFilters('actual_start', 'actual_start_at'),
+                ...$this->dateRangeFilters('actual_end', 'actual_end_at'),
+                ...$this->dateRangeFilters('created', 'created_at'),
             ])
-            ->allowedSorts(['service_date_local', 'unit_value', 'service_status'])
+            ->allowedSorts([
+                'service_number',
+                'service_date_local',
+                'unit_value',
+                'service_status',
+                'planned_start_at',
+                'planned_end_at',
+                'actual_start_at',
+                'actual_end_at',
+                'created_at',
+            ])
             ->paginate($request->perPage())
             ->withQueryString();
 
@@ -150,6 +166,31 @@ class ServiceController extends Controller
         ];
     }
 
+    /**
+     * Build a `<prefix>_from` / `<prefix>_to` pair of day-granularity range
+     * filters over a datetime column, mirroring the existing
+     * `date_from` / `date_to` pattern on `service_date_local`.
+     *
+     * @return array<int, AllowedFilter>
+     */
+    private function dateRangeFilters(string $prefix, string $column): array
+    {
+        return [
+            AllowedFilter::callback("{$prefix}_from", function (Builder $query, $value) use ($column): void {
+                $value = is_array($value) ? ($value[0] ?? '') : (string) $value;
+                if ($value !== '') {
+                    $query->whereDate($column, '>=', $value);
+                }
+            }),
+            AllowedFilter::callback("{$prefix}_to", function (Builder $query, $value) use ($column): void {
+                $value = is_array($value) ? ($value[0] ?? '') : (string) $value;
+                if ($value !== '') {
+                    $query->whereDate($column, '<=', $value);
+                }
+            }),
+        ];
+    }
+
     public function create(Request $request): Response
     {
         Gate::authorize(Permission::CREATE_SERVICES->value);
@@ -174,6 +215,7 @@ class ServiceController extends Controller
 
         return Inertia::render('services/create', [
             ...$this->formReferenceData(),
+            'reservedServiceNumber' => $this->reserveServiceNumber($request),
             'prefill' => ! empty($prefill) ? $prefill : null,
             'executedDates' => $executedDates,
             'canBypassExecutedDay' => auth()->user()->hasAnyRole([Role::ADMIN, Role::SUPER_ADMIN]),
@@ -203,6 +245,30 @@ class ServiceController extends Controller
         ]);
     }
 
+    /**
+     * Reserve (or reuse) the consecutive shown read-only on the create form.
+     *
+     * A fresh reservation durably advances the per-year counter, so we cache
+     * it in the session and reuse it across reloads of the create page as long
+     * as it hasn't been consumed yet (no Service persisted with it). That way a
+     * simple refresh doesn't burn a gap; only opening the form once and
+     * abandoning it does.
+     */
+    private function reserveServiceNumber(Request $request): string
+    {
+        $reserved = $request->session()->get('service_number_reservation');
+
+        if (is_string($reserved) && $reserved !== ''
+            && ! Service::withTrashed()->where('service_number', $reserved)->exists()) {
+            return $reserved;
+        }
+
+        $reserved = Service::reserveNextNumber();
+        $request->session()->put('service_number_reservation', $reserved);
+
+        return $reserved;
+    }
+
     public function store(ServiceStoreRequest $request): RedirectResponse
     {
         Gate::authorize(Permission::CREATE_SERVICES->value);
@@ -228,7 +294,31 @@ class ServiceController extends Controller
             $serviceData['create_generic_contract'],
         );
 
-        $service = Service::create($serviceData);
+        // Persist the reserved consecutive (the read-only value the form
+        // showed). Retry on the rare UNIQUE collision — e.g. two tabs sharing
+        // the same session reservation — by re-reserving a fresh number. The
+        // UNIQUE constraint on services.service_number is the final guard.
+        $reserved = (string) ($serviceData['service_number'] ?? '');
+
+        $service = null;
+        $attempts = 0;
+        while ($attempts < 3) {
+            try {
+                $serviceData['service_number'] = $reserved !== ''
+                    ? $reserved
+                    : Service::reserveNextNumber();
+                $service = Service::create($serviceData);
+                break;
+            } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+                $attempts++;
+                $reserved = '';
+                if ($attempts >= 3) {
+                    throw $e;
+                }
+            }
+        }
+
+        $request->session()->forget('service_number_reservation');
 
         // REQ-009: tag retroactive closed entries so /audit-log can
         // filter them apart from services closed via the driver

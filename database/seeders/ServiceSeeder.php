@@ -120,6 +120,7 @@ class ServiceSeeder extends Seeder
             )));
 
             Service::create([
+                'service_number' => Service::reserveNextNumber(),
                 'contract_id' => $contract->id,
                 'vehicle_id' => $vehicle->id,
                 'driver_id' => $driver->id,

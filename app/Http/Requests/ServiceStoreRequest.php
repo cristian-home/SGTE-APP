@@ -59,6 +59,10 @@ class ServiceStoreRequest extends FormRequest
     public function rules(): array
     {
         $rules = [
+            // The consecutive is reserved server-side and shown read-only in
+            // the form. The submitted value is the reservation; the controller
+            // re-guards uniqueness and re-reserves on the rare collision.
+            'service_number' => ['nullable', 'string', 'max:50'],
             'contract_id' => ['required', 'integer', 'exists:contracts,id'],
             'vehicle_id' => ['required', 'integer', 'exists:vehicles,id'],
             'driver_id' => ['nullable', 'integer', 'exists:drivers,id'],

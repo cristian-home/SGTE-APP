@@ -33,7 +33,11 @@ export type ServiceIncidentRow = ServiceIncident & {
     service?:
         | (Pick<
               Service,
-              'id' | 'service_date' | 'vehicle_id' | 'contract_id'
+              | 'id'
+              | 'service_number'
+              | 'service_date'
+              | 'vehicle_id'
+              | 'contract_id'
           > & {
               vehicle?: Pick<Vehicle, 'id' | 'plate'> | null;
               contract?: Pick<Contract, 'id' | 'contract_number'> | null;
@@ -85,10 +89,9 @@ export const columns: ColumnDef<ServiceIncidentRow, unknown>[] = [
                     href={services.show(service.id).url}
                     className="text-primary hover:underline"
                 >
-                    <span className="font-mono">
-                        {service.vehicle?.plate ?? `#${service.id}`}
-                    </span>
+                    <span className="font-mono">{service.service_number}</span>
                     <span className="ml-1 text-xs text-muted-foreground">
+                        {service.vehicle?.plate ?? '—'} ·{' '}
                         {formatServiceDate(service.service_date)}
                     </span>
                 </Link>

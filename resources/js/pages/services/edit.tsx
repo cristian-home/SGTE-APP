@@ -15,6 +15,7 @@ import type { DayStatus } from '@/types/models';
 
 interface Service {
     id: number;
+    service_number: string;
     contract_id: number;
     vehicle_id: number;
     driver_id: number | null;
@@ -134,6 +135,7 @@ export default function ServicesEdit({
                         municipalities={municipalities}
                         incidentCount={service.service_incidents_count}
                         mode="edit"
+                        serviceNumber={service.service_number}
                         dayStatus={dayStatus}
                         canEditExecuted={canEditExecuted}
                         isAdmin={isAdmin}

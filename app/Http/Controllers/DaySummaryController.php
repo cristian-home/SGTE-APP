@@ -101,7 +101,7 @@ class DaySummaryController extends Controller
         return response()->streamDownload(function () use ($services) {
             $handle = fopen('php://output', 'w');
             fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
-            fputcsv($handle, ['Placa', 'Conductor/Proveedor', 'Hora Inicio', 'Hora Fin', 'Duración (min)', 'Cliente', 'Estado', 'Valor del servicio', 'Novedades', 'Recargo novedades', 'Valor Unitario', 'Cantidad', 'Forma de Pago', 'Grupo Facturación', 'Total']);
+            fputcsv($handle, ['Consecutivo', 'Placa', 'Conductor/Proveedor', 'Hora Inicio', 'Hora Fin', 'Duración (min)', 'Cliente', 'Estado', 'Valor del servicio', 'Novedades', 'Recargo novedades', 'Valor Unitario', 'Cantidad', 'Forma de Pago', 'Grupo Facturación', 'Total']);
             foreach ($services as $service) {
                 $driverOrProvider = $service->vehicle?->is_third_party
                     ? ($service->vehicle?->thirdParty?->company_name ?? $service->vehicle?->thirdParty?->first_name.' '.$service->vehicle?->thirdParty?->first_lastname)
@@ -115,6 +115,7 @@ class DaySummaryController extends Controller
                 $total = $serviceValue + $billingImpact;
 
                 fputcsv($handle, [
+                    $service->service_number,
                     $service->vehicle?->plate ?? '',
                     $driverOrProvider ?? '',
                     $service->planned_start_local ?? '',

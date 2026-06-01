@@ -99,6 +99,9 @@ function ServiceBar({ service, position, onClick }: ServiceBarProps) {
             </TooltipTrigger>
             <TooltipContent side="top" className="max-w-xs">
                 <div className="space-y-1 text-xs">
+                    <p className="font-mono font-semibold tabular-nums">
+                        {service.service_number}
+                    </p>
                     <p className="font-medium">{getClientName(service)}</p>
                     <p>Conductor: {getDriverName(service)}</p>
                     <p>

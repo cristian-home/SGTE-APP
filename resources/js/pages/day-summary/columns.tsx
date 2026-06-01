@@ -35,6 +35,16 @@ function thirdPartyName(
 
 export const columns: ColumnDef<Service, unknown>[] = [
     {
+        accessorKey: 'service_number',
+        meta: { label: 'Consecutivo' },
+        header: 'Consecutivo',
+        cell: ({ row }) => (
+            <span className="font-mono tabular-nums">
+                {row.original.service_number}
+            </span>
+        ),
+    },
+    {
         id: 'plate',
         meta: { label: 'Placa' },
         header: 'Placa',

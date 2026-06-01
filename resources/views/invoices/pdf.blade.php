@@ -271,6 +271,7 @@
     <table class="data-table">
         <thead>
             <tr>
+                <th>Consecutivo</th>
                 <th>Fecha</th>
                 <th>Contrato</th>
                 <th>Vehículo</th>
@@ -285,6 +286,7 @@
                     $subtotal = (float) $service->unit_value * (int) $service->quantity;
                 @endphp
                 <tr>
+                    <td class="mono">{{ $service->service_number }}</td>
                     <td>{{ $fmtDate($service->service_date) }}</td>
                     <td class="mono">{{ $service->contract?->contract_number ?? '—' }}</td>
                     <td class="mono">{{ $service->vehicle?->plate ?? '—' }}</td>
@@ -314,7 +316,7 @@
             @foreach ($billing_incidents as $incident)
                 @php
                     $service = $services->firstWhere('id', $incident->service_id);
-                    $servicePlate = $service?->vehicle?->plate ?? '—';
+                    $serviceLabel = $service?->service_number ?? ($service?->vehicle?->plate ?? '—');
                 @endphp
                 <tr>
                     <td>
@@ -324,7 +326,7 @@
                             —
                         @endif
                     </td>
-                    <td class="mono">{{ $servicePlate }}</td>
+                    <td class="mono">{{ $serviceLabel }}</td>
                     <td>{{ $incident->incidentType?->name ?? '—' }}</td>
                     <td>{{ Str::limit($incident->description ?? '', 100) }}</td>
                     <td class="right tabular">

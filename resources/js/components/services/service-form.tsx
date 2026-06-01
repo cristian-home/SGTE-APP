@@ -478,6 +478,12 @@ interface ServiceFormProps {
     municipalities: MunicipalityOption[];
     incidentCount?: number;
     mode: 'create' | 'edit';
+    /**
+     * User-facing consecutive shown read-only at the top of "Datos del
+     * Servicio". In create mode it is the number reserved when the form
+     * opened; in edit mode it is the persisted `service.service_number`.
+     */
+    serviceNumber?: string | null;
     dayStatus?: DayStatus | null;
     canEditExecuted?: boolean;
     isAdmin?: boolean;
@@ -508,6 +514,7 @@ export default function ServiceForm({
     municipalities,
     incidentCount,
     mode,
+    serviceNumber,
     dayStatus,
     canEditExecuted,
     isAdmin,
@@ -937,7 +944,24 @@ export default function ServiceForm({
                             )}
                     </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
+                    {serviceNumber ? (
+                        <div className="grid gap-2">
+                            <Label htmlFor="service_number">Consecutivo</Label>
+                            <div
+                                id="service_number"
+                                className="flex h-9 w-fit items-center rounded-md bg-muted px-3 font-mono text-base font-semibold tracking-wide tabular-nums"
+                                aria-label="Consecutivo del servicio"
+                            >
+                                {serviceNumber}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                {mode === 'create'
+                                    ? 'Reservado al abrir; se confirma al guardar.'
+                                    : 'Identificador del servicio.'}
+                            </p>
+                        </div>
+                    ) : null}
                     <div className="grid gap-4 md:grid-cols-2 md:grid-rows-[auto_1fr_auto]">
                         <div
                             className="group/field grid gap-2 md:row-span-3 md:grid-rows-subgrid"
