@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { type EditableVehicle } from '@/components/vehicles/vehicle-dialog';
 import { VehicleDocumentPills } from '@/components/vehicles/vehicle-document-pills';
 import { Permission } from '@/enums/Permission';
+import { type VehicleType, VehicleTypeLabel } from '@/enums/VehicleType';
 import vehicles from '@/routes/vehicles';
 
 import type { ColumnDef, Table } from '@tanstack/react-table';
@@ -20,13 +21,6 @@ export interface VehicleTableMeta {
 function meta(table: Table<Vehicle>): VehicleTableMeta {
     return table.options.meta as VehicleTableMeta;
 }
-
-const typeLabels: Record<string, string> = {
-    bus: 'Bus',
-    buseta: 'Buseta',
-    van: 'Van',
-    automobile: 'Automóvil',
-};
 
 const statusLabels: Record<string, string> = {
     active: 'Activo',
@@ -94,7 +88,9 @@ export const columns: ColumnDef<Vehicle, unknown>[] = [
         accessorKey: 'type',
         meta: { label: 'Tipo' },
         header: 'Tipo',
-        cell: ({ row }) => typeLabels[row.original.type] ?? row.original.type,
+        cell: ({ row }) =>
+            VehicleTypeLabel[row.original.type as VehicleType] ??
+            row.original.type,
     },
     {
         id: 'propietario',

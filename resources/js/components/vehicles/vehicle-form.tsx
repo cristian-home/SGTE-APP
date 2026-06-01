@@ -21,6 +21,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { VehicleType, VehicleTypeLabel } from '@/enums/VehicleType';
 
 const VEHICLE_STATUS_OPTIONS: Array<{
     value: string;
@@ -231,12 +232,11 @@ export default function VehicleForm({
                             <SelectValue placeholder="Seleccionar..." />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="bus">Bus</SelectItem>
-                            <SelectItem value="buseta">Buseta</SelectItem>
-                            <SelectItem value="van">Van</SelectItem>
-                            <SelectItem value="automobile">
-                                Automovil
-                            </SelectItem>
+                            {Object.values(VehicleType).map((value) => (
+                                <SelectItem key={value} value={value}>
+                                    {VehicleTypeLabel[value]}
+                                </SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
                     <FieldFooter error={errors.type} />

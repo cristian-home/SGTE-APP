@@ -15,6 +15,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { type VehicleType, VehicleTypeLabel } from '@/enums/VehicleType';
 import AppLayout from '@/layouts/app-layout';
 import contracts from '@/routes/contracts';
 import thirdParties from '@/routes/third-parties';
@@ -90,13 +91,6 @@ function formatDate(date: string | null): string {
     }
     return dateFormatter.format(parsed);
 }
-
-const vehicleTypeLabels: Record<string, string> = {
-    bus: 'Bus',
-    buseta: 'Buseta',
-    van: 'Van',
-    automobile: 'Automóvil',
-};
 
 const vehicleStatusLabels: Record<string, string> = {
     active: 'Activo',
@@ -352,8 +346,8 @@ export default function ThirdPartiesShow({
                                                     {v.internal_code ?? '—'}
                                                 </TableCell>
                                                 <TableCell>
-                                                    {vehicleTypeLabels[
-                                                        v.type
+                                                    {VehicleTypeLabel[
+                                                        v.type as VehicleType
                                                     ] ?? v.type}
                                                 </TableCell>
                                                 <TableCell>
