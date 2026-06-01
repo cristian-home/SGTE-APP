@@ -40,6 +40,7 @@ class VehicleController extends Controller
                 'municipality.department:id,name',
             ])
             ->allowedFilters([
+                AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
                 'internal_code',
                 'plate',
                 'brand',

@@ -70,7 +70,12 @@ export function KpiCard({
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart
                                 data={sparkline}
-                                margin={{ top: 4, right: 0, bottom: 0, left: 0 }}
+                                margin={{
+                                    top: 4,
+                                    right: 0,
+                                    bottom: 0,
+                                    left: 0,
+                                }}
                             >
                                 <defs>
                                     <linearGradient

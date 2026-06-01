@@ -13,6 +13,7 @@ use App\Models\Service;
 use App\Models\ThirdParty;
 use App\Services\InvoiceTotalCalculator;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -40,6 +41,7 @@ class InvoiceController extends Controller
             // services_count drives the locked-total state of the edit modal.
             ->withCount('services')
             ->allowedFilters([
+                AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
                 'invoice_number',
                 AllowedFilter::exact('payment_status'),
                 AllowedFilter::exact('third_party_id'),

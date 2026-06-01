@@ -73,6 +73,17 @@ class AuditLogController extends Controller
         $activities = QueryBuilder::for(Activity::class)
             ->with(['causer:id,name,email'])
             ->allowedFilters([
+                AllowedFilter::callback('search', function (Builder $query, $value): void {
+                    $value = is_array($value) ? ($value[0] ?? '') : (string) $value;
+                    if ($value === '') {
+                        return;
+                    }
+                    $needle = '%'.mb_strtolower($value).'%';
+                    $query->where(function (Builder $q) use ($needle): void {
+                        $q->whereRaw('lower(description) like ?', [$needle])
+                            ->orWhereRaw('lower(event) like ?', [$needle]);
+                    });
+                }),
                 AllowedFilter::exact('log_name'),
                 AllowedFilter::exact('subject_type'),
                 AllowedFilter::exact('causer_id'),

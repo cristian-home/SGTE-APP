@@ -6,11 +6,13 @@ use App\Enums\Permission;
 use App\Http\Requests\EpsStoreRequest;
 use App\Http\Requests\EpsUpdateRequest;
 use App\Models\Eps;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
+use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
 
 class EpsController extends Controller
@@ -20,7 +22,11 @@ class EpsController extends Controller
         Gate::authorize(Permission::MANAGE_CATALOGS->value);
 
         $eps = QueryBuilder::for(Eps::class)
-            ->allowedFilters(['code', 'name'])
+            ->allowedFilters([
+                AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
+                'code',
+                'name',
+            ])
             ->allowedSorts(['code', 'name'])
             ->get();
 

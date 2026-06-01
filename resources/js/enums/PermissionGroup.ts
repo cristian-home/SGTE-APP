@@ -22,25 +22,26 @@ export const PermissionGroup = {
     NOTIFICATIONS: 'notifications',
 } as const;
 
-export type PermissionGroup = (typeof PermissionGroup)[keyof typeof PermissionGroup];
+export type PermissionGroup =
+    (typeof PermissionGroup)[keyof typeof PermissionGroup];
 
 export const PermissionGroupLabel: Record<PermissionGroup, string> = {
-    'dashboard': 'Panel y Configuración',
-    'vehicles': 'Vehículos',
-    'drivers': 'Conductores',
+    dashboard: 'Panel y Configuración',
+    vehicles: 'Vehículos',
+    drivers: 'Conductores',
     'third-parties': 'Terceros',
-    'contracts': 'Contratos',
-    'services': 'Servicios',
+    contracts: 'Contratos',
+    services: 'Servicios',
     'day-summary': 'Resumen del día',
-    'incidents': 'Novedades',
-    'invoices': 'Facturas',
-    'reports': 'Reportes',
-    'fuec': 'FUEC',
-    'gps': 'GPS',
-    'users': 'Usuarios',
+    incidents: 'Novedades',
+    invoices: 'Facturas',
+    reports: 'Reportes',
+    fuec: 'FUEC',
+    gps: 'GPS',
+    users: 'Usuarios',
     'incident-types': 'Tipos de novedad',
-    'catalogs': 'Catálogos',
-    'audit': 'Auditoría',
+    catalogs: 'Catálogos',
+    audit: 'Auditoría',
     'data-imports': 'Importaciones',
-    'notifications': 'Notificaciones',
+    notifications: 'Notificaciones',
 };
