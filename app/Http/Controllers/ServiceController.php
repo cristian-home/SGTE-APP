@@ -66,6 +66,9 @@ class ServiceController extends Controller
                 'actual_end_at',
                 'created_at',
             ])
+            // Newest services first by default (no sort param). `-id` is the
+            // deterministic tiebreaker for rows created in the same instant.
+            ->defaultSort('-created_at', '-id')
             ->paginate($request->perPage())
             ->withQueryString();
 
