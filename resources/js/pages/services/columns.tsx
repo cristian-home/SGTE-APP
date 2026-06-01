@@ -6,10 +6,7 @@ import {
 } from '@/components/data-table';
 import { Badge } from '@/components/ui/badge';
 import { Permission } from '@/enums/Permission';
-import {
-    formatEventDateTime,
-    formatTimestampInViewerTz,
-} from '@/lib/datetime';
+import { formatEventDateTime, formatTimestampInViewerTz } from '@/lib/datetime';
 import services from '@/routes/services';
 
 import type { ColumnDef } from '@tanstack/react-table';

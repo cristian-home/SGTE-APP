@@ -294,8 +294,13 @@ export default function ServicesIndex({
                                 <DataTableDateRangeFilter
                                     key={prefix}
                                     label={label}
-                                    from={activeFilters[`${prefix}_from`]?.[0] ?? ''}
-                                    to={activeFilters[`${prefix}_to`]?.[0] ?? ''}
+                                    from={
+                                        activeFilters[`${prefix}_from`]?.[0] ??
+                                        ''
+                                    }
+                                    to={
+                                        activeFilters[`${prefix}_to`]?.[0] ?? ''
+                                    }
                                     onChange={makeRangeHandler(prefix)}
                                     fromInputId={`services-filter-${prefix}-from`}
                                     toInputId={`services-filter-${prefix}-to`}
