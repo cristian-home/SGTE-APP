@@ -392,14 +392,16 @@ export default function ServicesShow({
                                     {service.billing_groups &&
                                     service.billing_groups.length > 0 ? (
                                         <div className="flex flex-wrap justify-center gap-1">
-                                            {service.billing_groups.map((tag) => (
-                                                <Badge
-                                                    key={tag}
-                                                    variant="secondary"
-                                                >
-                                                    {tag}
-                                                </Badge>
-                                            ))}
+                                            {service.billing_groups.map(
+                                                (tag) => (
+                                                    <Badge
+                                                        key={tag}
+                                                        variant="secondary"
+                                                    >
+                                                        {tag}
+                                                    </Badge>
+                                                ),
+                                            )}
                                         </div>
                                     ) : (
                                         '\u2014'

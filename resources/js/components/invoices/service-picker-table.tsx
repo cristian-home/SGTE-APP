@@ -174,9 +174,7 @@ export default function ServicePickerTable({
                 set.add(tag);
             }
         }
-        return Array.from(set.values()).sort((a, b) =>
-            a.localeCompare(b),
-        );
+        return Array.from(set.values()).sort((a, b) => a.localeCompare(b));
     }, [candidates, blockedCandidates, attachedCandidates]);
 
     const filter = (rows: ServicePickerRow[]) => {
