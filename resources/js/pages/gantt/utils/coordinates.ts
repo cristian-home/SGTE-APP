@@ -113,7 +113,12 @@ export function serviceBarAbsolutePosition(
     if (!plannedDuration || plannedDuration <= 0) {
         return null;
     }
-    const left = instantToPxFromEpoch(plannedStartAt, eventTz, epoch, pxPerHour);
+    const left = instantToPxFromEpoch(
+        plannedStartAt,
+        eventTz,
+        epoch,
+        pxPerHour,
+    );
     const width = Math.max((plannedDuration / 60) * pxPerHour, 1);
     return { left, width };
 }

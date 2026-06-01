@@ -69,7 +69,8 @@ export default function BillingGroupsInput({
                 'focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50',
                 'transition-[color,box-shadow]',
                 disabled && 'cursor-not-allowed opacity-50',
-                invalid && 'border-destructive ring-destructive/20 focus-within:ring-destructive/40',
+                invalid &&
+                    'border-destructive ring-destructive/20 focus-within:ring-destructive/40',
             )}
             onClick={() => {
                 if (!disabled) inputRef.current?.focus();
@@ -79,7 +80,7 @@ export default function BillingGroupsInput({
                 <Badge
                     key={`${tag}-${index}`}
                     variant="secondary"
-                    className="gap-1 pl-2 pr-1"
+                    className="gap-1 pr-1 pl-2"
                 >
                     <span className="max-w-[200px] truncate">{tag}</span>
                     {!disabled && (
@@ -110,7 +111,7 @@ export default function BillingGroupsInput({
                 aria-label="Grupos de facturación"
                 placeholder={value.length === 0 ? placeholder : ''}
                 maxLength={maxTagLength}
-                className="flex-1 min-w-32 bg-transparent text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
+                className="min-w-32 flex-1 bg-transparent text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
             />
         </div>
     );

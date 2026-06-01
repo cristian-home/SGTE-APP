@@ -327,45 +327,43 @@ export default function ContractsShow({
                 </Card>
 
                 {/* Novedades facturables del contrato (conditional) */}
-                {incidentsBillingImpact &&
-                    incidentsBillingImpact.count > 0 && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <AlertTriangle className="size-5 text-amber-600 dark:text-amber-400" />
-                                    Novedades que afectan facturación
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="grid items-center gap-6 md:grid-cols-2">
-                                    <div className="flex flex-col items-center justify-center gap-1 text-center">
-                                        <p className="text-xs tracking-wide text-muted-foreground uppercase">
-                                            Total de novedades
-                                        </p>
-                                        <p className="text-3xl font-bold tabular-nums">
-                                            {incidentsBillingImpact.count}
-                                        </p>
-                                    </div>
-                                    <div className="flex flex-col items-center justify-center gap-1 text-center">
-                                        <p className="text-xs tracking-wide text-muted-foreground uppercase">
-                                            Recargo acumulado
-                                        </p>
-                                        <p className="text-3xl font-bold tabular-nums text-amber-700 dark:text-amber-400">
-                                            {currencyFormatter.format(
-                                                incidentsBillingImpact.amount,
-                                            )}
-                                        </p>
-                                    </div>
+                {incidentsBillingImpact && incidentsBillingImpact.count > 0 && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <AlertTriangle className="size-5 text-amber-600 dark:text-amber-400" />
+                                Novedades que afectan facturación
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid items-center gap-6 md:grid-cols-2">
+                                <div className="flex flex-col items-center justify-center gap-1 text-center">
+                                    <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                        Total de novedades
+                                    </p>
+                                    <p className="text-3xl font-bold tabular-nums">
+                                        {incidentsBillingImpact.count}
+                                    </p>
                                 </div>
-                                <p className="mt-4 text-left text-xs text-muted-foreground">
-                                    Suma de las novedades marcadas como
-                                    facturables en todos los servicios del
-                                    contrato. Se refleja en el total de cada
-                                    factura asociada.
-                                </p>
-                            </CardContent>
-                        </Card>
-                    )}
+                                <div className="flex flex-col items-center justify-center gap-1 text-center">
+                                    <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                        Recargo acumulado
+                                    </p>
+                                    <p className="text-3xl font-bold text-amber-700 tabular-nums dark:text-amber-400">
+                                        {currencyFormatter.format(
+                                            incidentsBillingImpact.amount,
+                                        )}
+                                    </p>
+                                </div>
+                            </div>
+                            <p className="mt-4 text-left text-xs text-muted-foreground">
+                                Suma de las novedades marcadas como facturables
+                                en todos los servicios del contrato. Se refleja
+                                en el total de cada factura asociada.
+                            </p>
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* Servicios Recientes */}
                 <Card>

@@ -73,7 +73,9 @@ export default function ServiceIncidentsIndex({
         columns,
         onResponse: (json) => {
             const value = json.filtered_billing_total;
-            setBillingTotal(typeof value === 'number' ? value : Number(value) || 0);
+            setBillingTotal(
+                typeof value === 'number' ? value : Number(value) || 0,
+            );
         },
     });
 

@@ -7,10 +7,11 @@ export const LicenseCategory = {
     C3: 'C3',
 } as const;
 
-export type LicenseCategory = (typeof LicenseCategory)[keyof typeof LicenseCategory];
+export type LicenseCategory =
+    (typeof LicenseCategory)[keyof typeof LicenseCategory];
 
 export const LicenseCategoryLabel: Record<LicenseCategory, string> = {
-    'C1': 'C1',
-    'C2': 'C2',
-    'C3': 'C3',
+    C1: 'C1',
+    C2: 'C2',
+    C3: 'C3',
 };
