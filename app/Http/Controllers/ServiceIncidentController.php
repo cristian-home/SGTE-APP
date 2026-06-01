@@ -39,6 +39,7 @@ class ServiceIncidentController extends Controller
 
         $baseQuery = QueryBuilder::for(ServiceIncident::class)
             ->allowedFilters([
+                AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
                 AllowedFilter::exact('service_id'),
                 AllowedFilter::exact('incident_type_id'),
                 AllowedFilter::exact('is_driver_report'),

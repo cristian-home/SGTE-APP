@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Concerns\HasTimezone;
 use App\Enums\BillingUnitType;
 use App\Enums\ContractObject;
+use App\Support\SearchField;
 use App\Support\Tz;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -19,6 +20,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Contract extends Model
 {
+    use Concerns\SearchesDatabase;
     use HasFactory, HasTimezone, LogsActivity, Searchable, SoftDeletes;
 
     /**
@@ -218,6 +220,18 @@ class Contract extends Model
             'route_description' => $this->route_description,
             'is_generic' => $this->is_generic,
             'active' => $this->active,
+        ];
+    }
+
+    /**
+     * @return array<int, SearchField>
+     */
+    public function searchableColumns(): array
+    {
+        return [
+            SearchField::substring('contract_number'),
+            SearchField::fuzzy('route_description'),
+            SearchField::fuzzy(['thirdParty.company_name', 'thirdParty.first_name', 'thirdParty.first_lastname', 'thirdParty.second_lastname']),
         ];
     }
 }

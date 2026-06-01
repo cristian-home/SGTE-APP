@@ -43,6 +43,7 @@ class ContractController extends Controller
                 'thirdParty.documentType:id,code,name',
             ])
             ->allowedFilters([
+                AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
                 'contract_number',
                 AllowedFilter::exact('contract_object'),
                 AllowedFilter::exact('is_generic'),

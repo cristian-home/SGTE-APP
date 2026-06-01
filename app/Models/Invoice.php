@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Concerns\HasTimezone;
 use App\Enums\PaymentStatus;
+use App\Support\SearchField;
 use App\Support\Tz;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -16,6 +17,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Invoice extends Model
 {
+    use Concerns\SearchesDatabase;
     use HasFactory, HasTimezone, LogsActivity, Searchable, SoftDeletes;
 
     /**
@@ -126,6 +128,18 @@ class Invoice extends Model
             'timezone' => $this->resolveTimezone(),
             'payment_status' => $this->payment_status?->value,
             'notes' => $this->notes,
+        ];
+    }
+
+    /**
+     * @return array<int, SearchField>
+     */
+    public function searchableColumns(): array
+    {
+        return [
+            SearchField::substring('invoice_number'),
+            SearchField::fuzzy('notes'),
+            SearchField::fuzzy(['thirdParty.company_name', 'thirdParty.first_name', 'thirdParty.first_lastname', 'thirdParty.second_lastname']),
         ];
     }
 }

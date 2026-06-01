@@ -10,6 +10,7 @@ use App\Models\DocumentType;
 use App\Models\Municipality;
 use App\Models\ThirdParty;
 use App\Models\Vehicle;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,6 +33,7 @@ class ThirdPartyController extends Controller
                 'documentType:id,code,name',
             ])
             ->allowedFilters([
+                AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
                 'identification_number',
                 AllowedFilter::exact('is_natural_person'),
                 'first_name',

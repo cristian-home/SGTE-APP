@@ -6,11 +6,13 @@ use App\Enums\Permission;
 use App\Http\Requests\SeveranceFundStoreRequest;
 use App\Http\Requests\SeveranceFundUpdateRequest;
 use App\Models\SeveranceFund;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
+use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
 
 class SeveranceFundController extends Controller
@@ -20,7 +22,11 @@ class SeveranceFundController extends Controller
         Gate::authorize(Permission::MANAGE_CATALOGS->value);
 
         $severanceFunds = QueryBuilder::for(SeveranceFund::class)
-            ->allowedFilters(['code', 'name'])
+            ->allowedFilters([
+                AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
+                'code',
+                'name',
+            ])
             ->allowedSorts(['code', 'name'])
             ->get();
 

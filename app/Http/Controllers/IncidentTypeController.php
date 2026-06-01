@@ -6,11 +6,13 @@ use App\Enums\Permission;
 use App\Http\Requests\IncidentTypeStoreRequest;
 use App\Http\Requests\IncidentTypeUpdateRequest;
 use App\Models\IncidentType;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
+use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
 
 class IncidentTypeController extends Controller
@@ -20,7 +22,12 @@ class IncidentTypeController extends Controller
         Gate::authorize(Permission::VIEW_INCIDENT_TYPES->value);
 
         $incidentTypes = QueryBuilder::for(IncidentType::class)
-            ->allowedFilters(['code', 'name', 'severity'])
+            ->allowedFilters([
+                AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
+                'code',
+                'name',
+                'severity',
+            ])
             ->allowedSorts(['code', 'name', 'severity'])
             ->get();
 

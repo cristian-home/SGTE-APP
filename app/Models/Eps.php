@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\SearchField;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -12,6 +13,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Eps extends Model
 {
+    use Concerns\SearchesDatabase;
     use HasFactory, SoftDeletes;
     use LogsActivity, Searchable;
 
@@ -67,6 +69,17 @@ class Eps extends Model
             'id' => (string) $this->id,
             'code' => $this->code,
             'name' => $this->name,
+        ];
+    }
+
+    /**
+     * @return array<int, SearchField>
+     */
+    public function searchableColumns(): array
+    {
+        return [
+            SearchField::substring('code'),
+            SearchField::fuzzy('name'),
         ];
     }
 }

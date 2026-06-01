@@ -52,6 +52,7 @@ class DriverController extends Controller
                 'user:id,name,email',
             ])
             ->allowedFilters([
+                AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
                 'identification_number',
                 'first_name',
                 'first_lastname',

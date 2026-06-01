@@ -2,20 +2,21 @@
 
 namespace App\Models\Concerns;
 
+use App\Support\SearchField;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Grammars\Grammar;
 
 trait SearchesDatabase
 {
     /**
-     * Return columns to search. Supports:
-     * - Local column: 'column_name'
-     * - Related column (dot notation): 'relation.column_name'
-     * - Composite columns (array): ['relation.column_a', 'relation.column_b']
+     * Columns to search. Each entry is one of:
+     * - A plain column name (string) — defaults to fuzzy matching.
+     * - A composite array of column names — concatenated with spaces, fuzzy.
+     * - A `SearchField` descriptor declaring an explicit per-field mode
+     *   (exact / prefix / substring / fuzzy). Columns may use dot notation
+     *   (`relation.column`) to search a `belongsTo` relation.
      *
-     * Composite columns are concatenated with spaces, enabling multi-field matching.
-     *
-     * @return array<int, string|array<int, string>>
+     * @return array<int, string|array<int, string>|SearchField>
      */
     abstract public function searchableColumns(): array;
 
@@ -35,78 +36,162 @@ trait SearchesDatabase
     public function scopeSearch(Builder $query, string $term): Builder
     {
         $term = trim($term);
+        $fields = $this->normalizedSearchFields();
 
-        if ($term === '' || empty($this->searchableColumns())) {
+        if ($term === '' || $fields === []) {
             return $query;
         }
 
-        $driver = $query->getConnection()->getDriverName();
+        $usesTrigram = $query->getConnection()->getDriverName() === 'pgsql';
 
-        if ($driver === 'pgsql') {
-            return $this->applyTrigramSearch($query, $term);
-        }
-
-        // SQLite/MySQL fallback — plain substring match
-        return $query->where(function (Builder $q) use ($term) {
-            foreach ($this->searchableColumns() as $entry) {
-                if (is_array($entry)) {
-                    $this->addCompositeLikeCondition($q, $entry, $term);
-                } elseif (str_contains($entry, '.')) {
-                    [$relation, $field] = explode('.', $entry, 2);
-                    $q->orWhereHas($relation, fn (Builder $sub) => $sub->where($field, 'LIKE', "%{$term}%"));
-                } else {
-                    $q->orWhere($entry, 'LIKE', "%{$term}%");
-                }
+        return $query->where(function (Builder $q) use ($fields, $term, $usesTrigram) {
+            foreach ($fields as $field) {
+                $this->applySearchField($q, $field, $term, $usesTrigram);
             }
         });
+    }
+
+    /**
+     * Search with results ordered by relevance (best similarity score first).
+     * Only fuzzy fields contribute to the ordering. On non-PostgreSQL drivers,
+     * falls back to search() without ordering.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeSearchWithRelevance(Builder $query, string $term): Builder
+    {
+        $this->scopeSearch($query, $term);
+
+        $term = trim($term);
+        $fields = $this->normalizedSearchFields();
+
+        if ($term === '' || $fields === [] || $query->getConnection()->getDriverName() !== 'pgsql') {
+            return $query;
+        }
+
+        return $this->addRelevanceOrdering($query, $term, $fields);
+    }
+
+    /**
+     * Normalize the raw `searchableColumns()` entries into SearchField
+     * descriptors. Plain strings and arrays default to fuzzy matching to
+     * preserve backward compatibility.
+     *
+     * @return array<int, SearchField>
+     */
+    private function normalizedSearchFields(): array
+    {
+        return array_map(
+            fn ($entry): SearchField => $entry instanceof SearchField ? $entry : SearchField::fuzzy($entry),
+            $this->searchableColumns()
+        );
+    }
+
+    /**
+     * Add one field's predicate as an OR branch of the global search.
+     *
+     * @param  Builder<static>  $query
+     */
+    private function applySearchField(Builder $query, SearchField $field, string $term, bool $usesTrigram): void
+    {
+        [$relation, $columns] = $this->splitRelation($field->columns);
+        $threshold = $this->searchSimilarityThreshold();
+
+        if ($relation !== null) {
+            $query->orWhereHas($relation, function (Builder $sub) use ($columns, $term, $field, $usesTrigram, $threshold) {
+                $expression = $this->expression($sub->getGrammar(), $columns);
+                $this->applyModePredicate($sub, $expression, $term, $field->mode, $usesTrigram, $threshold);
+            });
+
+            return;
+        }
+
+        $expression = $this->expression($query->getGrammar(), $columns);
+
+        $query->orWhere(function (Builder $inner) use ($expression, $term, $field, $usesTrigram, $threshold) {
+            $this->applyModePredicate($inner, $expression, $term, $field->mode, $usesTrigram, $threshold);
+        });
+    }
+
+    /**
+     * Build the WHERE condition for a single field according to its mode.
+     * `$expression` is a SQL string already wrapped/coalesced (single column
+     * or composite concatenation), safe to interpolate.
+     *
+     * @param  Builder<static>  $query
+     */
+    private function applyModePredicate(Builder $query, string $expression, string $term, string $mode, bool $usesTrigram, float $threshold): void
+    {
+        $like = $usesTrigram ? 'ilike' : 'like';
+
+        switch ($mode) {
+            case SearchField::EXACT:
+                $query->whereRaw("lower({$expression}) = lower(?)", [$term]);
+                break;
+
+            case SearchField::PREFIX:
+                $query->whereRaw("{$expression} {$like} ?", ["{$term}%"]);
+                break;
+
+            case SearchField::SUBSTRING:
+                $query->whereRaw("{$expression} {$like} ?", ["%{$term}%"]);
+                break;
+
+            case SearchField::FUZZY:
+            default:
+                $query->whereRaw("{$expression} {$like} ?", ["%{$term}%"]);
+                if ($usesTrigram) {
+                    $query->orWhereRaw("word_similarity(?, {$expression}) >= ?", [$term, $threshold]);
+                }
+                break;
+        }
     }
 
     /**
      * @param  Builder<static>  $query
+     * @param  array<int, SearchField>  $fields
      * @return Builder<static>
      */
-    private function applyTrigramSearch(Builder $query, string $term): Builder
+    private function addRelevanceOrdering(Builder $query, string $term, array $fields): Builder
     {
-        $columns = $this->searchableColumns();
-        $threshold = $this->searchSimilarityThreshold();
+        $grammar = $query->getGrammar();
+        $scores = [];
+        $bindings = [];
 
-        return $query->where(function (Builder $q) use ($term, $columns, $threshold) {
-            $grammar = $q->getGrammar();
-
-            foreach ($columns as $entry) {
-                if (is_array($entry)) {
-                    $this->addCompositeTrigramCondition($q, $entry, $term, $threshold);
-                } elseif (str_contains($entry, '.')) {
-                    [$relation, $field] = explode('.', $entry, 2);
-                    $q->orWhereHas($relation, function (Builder $sub) use ($term, $field, $threshold) {
-                        $wrapped = $sub->getGrammar()->wrap($field);
-                        $sub->where(function (Builder $inner) use ($term, $field, $wrapped, $threshold) {
-                            $inner->where($field, 'ILIKE', "%{$term}%")
-                                ->orWhereRaw(
-                                    "word_similarity(?, coalesce({$wrapped}, '')) >= ?",
-                                    [$term, $threshold]
-                                );
-                        });
-                    });
-                } else {
-                    $wrapped = $grammar->wrap($entry);
-                    $q->orWhere($entry, 'ILIKE', "%{$term}%");
-                    $q->orWhereRaw(
-                        "word_similarity(?, coalesce({$wrapped}, '')) >= ?",
-                        [$term, $threshold]
-                    );
-                }
+        foreach ($fields as $field) {
+            if (! $field->isFuzzy()) {
+                continue;
             }
-        });
+
+            [$relation, $columns] = $this->splitRelation($field->columns);
+
+            if ($relation !== null) {
+                $scores[] = $this->buildRelationScoreExpression($grammar, $relation, $columns);
+            } else {
+                $scores[] = 'word_similarity(?, '.$this->expression($grammar, $columns).')';
+            }
+
+            $bindings[] = $term;
+        }
+
+        if ($scores === []) {
+            return $query;
+        }
+
+        $greatest = 'GREATEST('.implode(', ', $scores).')';
+
+        return $query->orderByRaw("{$greatest} DESC", $bindings);
     }
 
     /**
-     * Parse composite columns into a relation (if any) and bare field names.
+     * Split columns into an optional `belongsTo` relation name and the bare
+     * field names. Dot-notation columns must all target the same relation.
      *
      * @param  array<int, string>  $columns
      * @return array{string|null, array<int, string>}
      */
-    private function parseCompositeColumns(array $columns): array
+    private function splitRelation(array $columns): array
     {
         $relation = null;
         $fields = [];
@@ -125,6 +210,22 @@ trait SearchesDatabase
     }
 
     /**
+     * Build a coalesced SQL expression for one or more columns. A single
+     * column becomes `coalesce(col, '')`; multiple columns are concatenated
+     * with spaces, enabling multi-field matching.
+     *
+     * @param  array<int, string>  $fields
+     */
+    private function expression(Grammar $grammar, array $fields): string
+    {
+        if (count($fields) === 1) {
+            return "coalesce({$grammar->wrap($fields[0])}, '')";
+        }
+
+        return $this->buildConcatExpression($grammar, $fields);
+    }
+
+    /**
      * Build a SQL expression that concatenates fields with spaces.
      *
      * @param  array<int, string>  $fields
@@ -137,104 +238,6 @@ trait SearchesDatabase
         );
 
         return implode(" || ' ' || ", $parts);
-    }
-
-    /**
-     * @param  array<int, string>  $columns
-     */
-    private function addCompositeLikeCondition(Builder $query, array $columns, string $term): void
-    {
-        [$relation, $fields] = $this->parseCompositeColumns($columns);
-
-        if ($relation) {
-            $query->orWhereHas($relation, function (Builder $sub) use ($fields, $term) {
-                $concat = $this->buildConcatExpression($sub->getGrammar(), $fields);
-                $sub->whereRaw("({$concat}) LIKE ?", ["%{$term}%"]);
-            });
-        } else {
-            $concat = $this->buildConcatExpression($query->getGrammar(), $fields);
-            $query->orWhereRaw("({$concat}) LIKE ?", ["%{$term}%"]);
-        }
-    }
-
-    /**
-     * @param  array<int, string>  $columns
-     */
-    private function addCompositeTrigramCondition(Builder $query, array $columns, string $term, float $threshold): void
-    {
-        [$relation, $fields] = $this->parseCompositeColumns($columns);
-
-        if ($relation) {
-            $query->orWhereHas($relation, function (Builder $sub) use ($fields, $term, $threshold) {
-                $concat = $this->buildConcatExpression($sub->getGrammar(), $fields);
-                $sub->where(function (Builder $inner) use ($concat, $term, $threshold) {
-                    $inner->whereRaw("({$concat}) ILIKE ?", ["%{$term}%"])
-                        ->orWhereRaw("word_similarity(?, {$concat}) >= ?", [$term, $threshold]);
-                });
-            });
-        } else {
-            $concat = $this->buildConcatExpression($query->getGrammar(), $fields);
-            $query->orWhereRaw("({$concat}) ILIKE ?", ["%{$term}%"]);
-            $query->orWhereRaw("word_similarity(?, {$concat}) >= ?", [$term, $threshold]);
-        }
-    }
-
-    /**
-     * Search with results ordered by relevance (best similarity score first).
-     * On non-PostgreSQL drivers, falls back to search() without ordering.
-     *
-     * @param  Builder<static>  $query
-     * @return Builder<static>
-     */
-    public function scopeSearchWithRelevance(Builder $query, string $term): Builder
-    {
-        $this->scopeSearch($query, $term);
-
-        $term = trim($term);
-
-        if ($term === '' || empty($this->searchableColumns()) || $query->getConnection()->getDriverName() !== 'pgsql') {
-            return $query;
-        }
-
-        return $this->addRelevanceOrdering($query, $term);
-    }
-
-    /**
-     * @param  Builder<static>  $query
-     * @return Builder<static>
-     */
-    private function addRelevanceOrdering(Builder $query, string $term): Builder
-    {
-        $grammar = $query->getGrammar();
-        $scores = [];
-        $bindings = [];
-
-        foreach ($this->searchableColumns() as $entry) {
-            if (is_array($entry)) {
-                [$relation, $fields] = $this->parseCompositeColumns($entry);
-
-                if ($relation) {
-                    $scores[] = $this->buildRelationScoreExpression($grammar, $relation, $fields);
-                } else {
-                    $concat = $this->buildConcatExpression($grammar, $fields);
-                    $scores[] = "word_similarity(?, {$concat})";
-                }
-
-                $bindings[] = $term;
-            } elseif (str_contains($entry, '.')) {
-                [$relation, $field] = explode('.', $entry, 2);
-                $scores[] = $this->buildRelationScoreExpression($grammar, $relation, [$field]);
-                $bindings[] = $term;
-            } else {
-                $wrapped = $grammar->wrap($entry);
-                $scores[] = "word_similarity(?, coalesce({$wrapped}, ''))";
-                $bindings[] = $term;
-            }
-        }
-
-        $greatest = 'GREATEST('.implode(', ', $scores).')';
-
-        return $query->orderByRaw("{$greatest} DESC", $bindings);
     }
 
     /**
@@ -251,7 +254,7 @@ trait SearchesDatabase
         $foreignKey = $grammar->wrap($belongsTo->getForeignKeyName());
         $parentTable = $grammar->wrapTable($this->getTable());
 
-        $concat = $this->buildConcatExpression($grammar, $fields);
+        $concat = $this->expression($grammar, $fields);
 
         return "coalesce((SELECT word_similarity(?, {$concat}) FROM {$relatedTable} WHERE {$relatedTable}.{$ownerKey} = {$parentTable}.{$foreignKey}), 0)";
     }

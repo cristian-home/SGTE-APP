@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\SearchField;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,6 +12,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class ServiceIncident extends Model
 {
+    use Concerns\SearchesDatabase;
     use HasFactory, LogsActivity, Searchable;
 
     /**
@@ -94,6 +96,18 @@ class ServiceIncident extends Model
             'reported_at' => $this->reported_at?->toIso8601String(),
             'affects_billing' => $this->affects_billing,
             'additional_value' => $this->additional_value !== null ? (float) $this->additional_value : null,
+        ];
+    }
+
+    /**
+     * @return array<int, SearchField>
+     */
+    public function searchableColumns(): array
+    {
+        return [
+            SearchField::fuzzy('description'),
+            SearchField::substring('service.service_number'),
+            SearchField::fuzzy('incidentType.name'),
         ];
     }
 }

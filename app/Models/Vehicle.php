@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Concerns\HasTimezone;
 use App\Enums\VehicleStatus;
 use App\Enums\VehicleType;
+use App\Support\SearchField;
 use App\Support\Tz;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -17,6 +18,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Vehicle extends Model
 {
+    use Concerns\SearchesDatabase;
     use HasFactory, HasTimezone, LogsActivity, Searchable, SoftDeletes;
 
     /**
@@ -243,6 +245,22 @@ class Vehicle extends Model
             'operation_card_due_at' => $this->operation_card_due_at?->toIso8601String(),
             'timezone' => $this->resolveTimezone(),
             'status' => $this->status?->value,
+        ];
+    }
+
+    /**
+     * @return array<int, SearchField>
+     */
+    public function searchableColumns(): array
+    {
+        return [
+            SearchField::substring('internal_code'),
+            SearchField::substring('plate'),
+            SearchField::substring('chassis_number'),
+            SearchField::substring('engine_number'),
+            SearchField::substring('mobile_number'),
+            SearchField::fuzzy('brand'),
+            SearchField::fuzzy('line'),
         ];
     }
 }
