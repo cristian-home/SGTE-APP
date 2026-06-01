@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('brand', 50);
             $table->string('line', 50);
             $table->integer('model_year');
-            $table->enum('type', ['bus', 'buseta', 'van', 'automobile']);
+            $table->enum('type', ['bus', 'buseta', 'microbus', 'van', 'automobile']);
             $table->string('engine_number', 50);
             $table->string('chassis_number', 50);
             $table->integer('capacity');
