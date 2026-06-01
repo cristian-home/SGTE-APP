@@ -160,3 +160,15 @@ test('the index can sort by service_number', function (): void {
 
     expect($numbers)->toBe($expected);
 });
+
+test('the index defaults to newest services first', function (): void {
+    $services = Service::factory()->count(4)->create();
+
+    $ids = collect(get(route('services.index'), ['Accept' => 'application/json'])->json('data'))
+        ->pluck('id')
+        ->all();
+
+    $expected = $services->pluck('id')->sortDesc()->values()->all();
+
+    expect($ids)->toBe($expected);
+});
