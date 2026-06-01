@@ -113,6 +113,10 @@ class ServiceFactory extends Factory
         $destinationSeed = RealColombianAddresses::random();
 
         return [
+            // Reserve through the durable counter so factory rows stay
+            // unique and the sequence keeps advancing in lockstep with the
+            // services they create.
+            'service_number' => fn (): string => Service::reserveNextNumber(),
             'contract_id' => Contract::inRandomOrder()->first()->id ?? Contract::factory(),
             'vehicle_id' => Vehicle::inRandomOrder()->first()->id ?? Vehicle::factory(),
             'driver_id' => Driver::inRandomOrder()->first()->id ?? Driver::factory(),

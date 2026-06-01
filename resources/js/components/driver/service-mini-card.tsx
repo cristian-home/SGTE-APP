@@ -63,6 +63,9 @@ export function ServiceMiniCard({
                 <span className="flex items-center gap-1.5 font-mono text-sm font-semibold">
                     <Truck className="size-3.5" />
                     {service.vehicle?.plate ?? '—'}
+                    <span className="font-normal text-muted-foreground">
+                        {service.service_number}
+                    </span>
                 </span>
                 <div className="flex items-center gap-1.5">
                     {incidentCount > 0 && (

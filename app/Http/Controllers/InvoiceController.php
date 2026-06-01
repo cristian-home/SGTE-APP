@@ -112,6 +112,7 @@ class InvoiceController extends Controller
             ->orderByDesc('id')
             ->get([
                 'id',
+                'service_number',
                 'service_date_local',
                 'planned_start_at',
                 'timezone',
@@ -241,6 +242,7 @@ class InvoiceController extends Controller
             ->limit(5)
             ->get([
                 'id',
+                'service_number',
                 'service_date_local',
                 'service_status',
                 'vehicle_id',
@@ -738,6 +740,7 @@ class InvoiceController extends Controller
             ->orderByDesc('id')
             ->get([
                 'id',
+                'service_number',
                 'service_date_local',
                 'planned_start_at',
                 'timezone',

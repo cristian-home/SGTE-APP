@@ -30,6 +30,7 @@ export default function ServicesCreate({
     contracts,
     municipalities,
     prefill,
+    reservedServiceNumber,
     executedDates = [],
     canBypassExecutedDay = false,
     thirdParties = [],
@@ -39,6 +40,7 @@ export default function ServicesCreate({
     drivers: DriverOption[];
     contracts: ContractOption[];
     municipalities: MunicipalityOption[];
+    reservedServiceNumber: string;
     prefill?: {
         vehicle_id?: string;
         planned_start_time?: string;
@@ -56,6 +58,7 @@ export default function ServicesCreate({
         : '';
 
     const { data, setData, post, processing, errors } = useForm({
+        service_number: reservedServiceNumber,
         contract_id: '',
         vehicle_id: prefill?.vehicle_id ?? '',
         driver_id: '',
@@ -136,6 +139,7 @@ export default function ServicesCreate({
                         contracts={contracts}
                         municipalities={municipalities}
                         mode="create"
+                        serviceNumber={reservedServiceNumber}
                         onCreateContractClick={
                             canCascadeContract
                                 ? () => setContractDialogOpen(true)

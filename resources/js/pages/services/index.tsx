@@ -208,6 +208,33 @@ export default function ServicesIndex({
     const dateFrom = activeFilters['date_from']?.[0] ?? '';
     const dateTo = activeFilters['date_to']?.[0] ?? '';
 
+    // Header date-range filters for the datetime columns. Each maps to a
+    // `<prefix>_from` / `<prefix>_to` pair handled by ServiceController's
+    // dateRangeFilters() helper. The popover edits one field at a time, so
+    // the back-to-back setFilter race documented below does not apply here.
+    const datetimeRangeFilters = [
+        { prefix: 'planned_start', label: 'Inicio planificado' },
+        { prefix: 'planned_end', label: 'Fin planificado' },
+        { prefix: 'actual_start', label: 'Inicio real' },
+        { prefix: 'actual_end', label: 'Fin real' },
+        { prefix: 'created', label: 'Creación' },
+    ] as const;
+
+    function makeRangeHandler(prefix: string) {
+        const fromKey = `${prefix}_from`;
+        const toKey = `${prefix}_to`;
+        return ({ from, to }: { from: string; to: string }) => {
+            const curFrom = activeFilters[fromKey]?.[0] ?? '';
+            const curTo = activeFilters[toKey]?.[0] ?? '';
+            if (from !== curFrom) {
+                setFilter(fromKey, from ? [from] : []);
+            }
+            if (to !== curTo) {
+                setFilter(toKey, to ? [to] : []);
+            }
+        };
+    }
+
     function handleDateRangeChange({ from, to }: { from: string; to: string }) {
         // Only push the field that actually changed; setFilter fires a
         // server round-trip and back-to-back calls race the
@@ -254,14 +281,27 @@ export default function ServicesIndex({
                     onFilterChange={setFilter}
                     onClearFilters={clearFilters}
                     extraFilters={
-                        <DataTableDateRangeFilter
-                            label="Rango de fechas"
-                            from={dateFrom}
-                            to={dateTo}
-                            onChange={handleDateRangeChange}
-                            fromInputId="services-filter-date-from"
-                            toInputId="services-filter-date-to"
-                        />
+                        <>
+                            <DataTableDateRangeFilter
+                                label="Rango de fechas"
+                                from={dateFrom}
+                                to={dateTo}
+                                onChange={handleDateRangeChange}
+                                fromInputId="services-filter-date-from"
+                                toInputId="services-filter-date-to"
+                            />
+                            {datetimeRangeFilters.map(({ prefix, label }) => (
+                                <DataTableDateRangeFilter
+                                    key={prefix}
+                                    label={label}
+                                    from={activeFilters[`${prefix}_from`]?.[0] ?? ''}
+                                    to={activeFilters[`${prefix}_to`]?.[0] ?? ''}
+                                    onChange={makeRangeHandler(prefix)}
+                                    fromInputId={`services-filter-${prefix}-from`}
+                                    toInputId={`services-filter-${prefix}-to`}
+                                />
+                            ))}
+                        </>
                     }
                     leadingActions={
                         <>

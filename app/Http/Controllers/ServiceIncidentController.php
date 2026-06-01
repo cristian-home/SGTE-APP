@@ -65,7 +65,7 @@ class ServiceIncidentController extends Controller
 
         $serviceIncidents = $baseQuery
             ->with([
-                'service:id,service_date_local,planned_start_at,timezone,vehicle_id,contract_id,driver_id',
+                'service:id,service_number,service_date_local,planned_start_at,timezone,vehicle_id,contract_id,driver_id',
                 'service.vehicle:id,plate',
                 'service.contract:id,contract_number',
                 'incidentType:id,code,name,severity',
@@ -166,7 +166,7 @@ class ServiceIncidentController extends Controller
         Gate::authorize(Permission::VIEW_INCIDENTS->value);
 
         $serviceIncident->load([
-            'service:id,service_date_local,planned_start_at,timezone,vehicle_id,contract_id,driver_id',
+            'service:id,service_number,service_date_local,planned_start_at,timezone,vehicle_id,contract_id,driver_id',
             'service.vehicle:id,plate',
             'service.contract:id,contract_number,third_party_id',
             'service.contract.thirdParty:id,is_natural_person,first_name,first_lastname,company_name',
@@ -184,7 +184,7 @@ class ServiceIncidentController extends Controller
         Gate::authorize(Permission::UPDATE_INCIDENTS->value);
 
         $serviceIncident->load([
-            'service:id,service_date_local,planned_start_at,timezone,vehicle_id,contract_id,driver_id',
+            'service:id,service_number,service_date_local,planned_start_at,timezone,vehicle_id,contract_id,driver_id',
             'service.vehicle:id,plate',
             'service.contract:id,contract_number,third_party_id',
             'service.contract.thirdParty:id,is_natural_person,first_name,first_lastname,company_name',
