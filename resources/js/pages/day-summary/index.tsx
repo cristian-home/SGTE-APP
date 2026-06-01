@@ -406,7 +406,7 @@ export default function DaySummaryIndex({
                             <TableFooter>
                                 <TableRow>
                                     <TableCell
-                                        colSpan={5}
+                                        colSpan={columns.length - 4}
                                         className="text-right text-xs tracking-wide text-muted-foreground uppercase"
                                     >
                                         Totales del día
