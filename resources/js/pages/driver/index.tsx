@@ -74,9 +74,7 @@ export default function DriverDashboard({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Mis Servicios" />
-            <div
-                className="flex flex-col gap-3 p-4 h-[calc(100svh-4rem)] md:h-[calc(100svh-5rem)]"
-            >
+            <div className="flex h-[calc(100svh-4rem)] flex-col gap-3 p-4 md:h-[calc(100svh-5rem)]">
                 {/* Compact header: title + date on the left, date
                     navigator on the right. Wraps on narrow widths. */}
                 <div className="flex flex-wrap items-center justify-between gap-3">

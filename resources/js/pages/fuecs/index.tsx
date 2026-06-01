@@ -61,7 +61,10 @@ export default function FuecsIndex({
                     onClearFilters={clearFilters}
                     actions={
                         <Button asChild size="sm">
-                            <Link href="/fuecs/create" aria-label="Generar FUEC">
+                            <Link
+                                href="/fuecs/create"
+                                aria-label="Generar FUEC"
+                            >
                                 <PlusIcon className="size-4" />
                                 <ToolbarLabel>Generar FUEC</ToolbarLabel>
                             </Link>

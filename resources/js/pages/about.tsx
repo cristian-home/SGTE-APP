@@ -67,7 +67,7 @@ export default function About() {
                     </CardHeader>
                     <CardContent className="grid gap-4 sm:grid-cols-2">
                         <div className="flex flex-col gap-1">
-                            <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                            <span className="text-xs tracking-wide text-muted-foreground uppercase">
                                 Versión
                             </span>
                             {releaseUrl ? (
@@ -86,7 +86,7 @@ export default function About() {
                             )}
                         </div>
                         <div className="flex flex-col gap-1">
-                            <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                            <span className="text-xs tracking-wide text-muted-foreground uppercase">
                                 Entorno
                             </span>
                             <Badge

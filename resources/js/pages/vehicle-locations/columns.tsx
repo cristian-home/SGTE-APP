@@ -8,7 +8,6 @@ import { Permission } from '@/enums/Permission';
 import { formatTimestampInViewerTz } from '@/lib/datetime';
 import type { ColumnDef } from '@tanstack/react-table';
 
-
 export interface VehicleLocationRow {
     id: number;
     vehicle_id: number;

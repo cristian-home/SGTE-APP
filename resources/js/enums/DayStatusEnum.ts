@@ -9,6 +9,6 @@ export const DayStatusEnum = {
 export type DayStatusEnum = (typeof DayStatusEnum)[keyof typeof DayStatusEnum];
 
 export const DayStatusEnumLabel: Record<DayStatusEnum, string> = {
-    'projected': 'Proyectado',
-    'executed': 'Ejecutado',
+    projected: 'Proyectado',
+    executed: 'Ejecutado',
 };

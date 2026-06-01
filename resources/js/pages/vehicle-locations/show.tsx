@@ -14,7 +14,6 @@ import { formatTimestampInViewerTz } from '@/lib/datetime';
 import vehicles from '@/routes/vehicles';
 import type { BreadcrumbItem } from '@/types';
 
-
 interface Location {
     id: number;
     vehicle_id: number;
@@ -241,8 +240,8 @@ export default function VehicleLocationShow({
                                         ?.email && (
                                         <div className="text-xs text-muted-foreground">
                                             {
-                                                vehicleLocation
-                                                    .captured_by_user.email
+                                                vehicleLocation.captured_by_user
+                                                    .email
                                             }
                                         </div>
                                     )}

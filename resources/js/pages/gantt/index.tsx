@@ -144,9 +144,7 @@ export default function GanttIndex({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Planificador Gantt" />
-            <div
-                className="flex flex-col gap-4 p-4 max-h-[calc(100svh-4rem)] md:max-h-[calc(100svh-5rem)]"
-            >
+            <div className="flex max-h-[calc(100svh-4rem)] flex-col gap-4 p-4 md:max-h-[calc(100svh-5rem)]">
                 <GanttHeader
                     date={centerDate}
                     canCreateServices={canCreateServices}

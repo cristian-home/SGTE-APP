@@ -16,11 +16,7 @@ import invoices from '@/routes/invoices';
 import { columns, type InvoiceRow, type InvoiceTableMeta } from './columns';
 
 import type { Row } from '@tanstack/react-table';
-import type {
-    BreadcrumbItem,
-    FilterDefinition,
-    PaginatedData,
-} from '@/types';
+import type { BreadcrumbItem, FilterDefinition, PaginatedData } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Facturas', href: invoices.index().url },

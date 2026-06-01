@@ -12,9 +12,9 @@ export const VehicleType = {
 export type VehicleType = (typeof VehicleType)[keyof typeof VehicleType];
 
 export const VehicleTypeLabel: Record<VehicleType, string> = {
-    'bus': 'Bus',
-    'buseta': 'Buseta',
-    'microbus': 'Microbús',
-    'van': 'Van',
-    'automobile': 'Automóvil',
+    bus: 'Bus',
+    buseta: 'Buseta',
+    microbus: 'Microbús',
+    van: 'Van',
+    automobile: 'Automóvil',
 };

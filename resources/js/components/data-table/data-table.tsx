@@ -211,7 +211,7 @@ function DataTableBody<TData>({
     const columnCount = table.getAllColumns().length;
 
     return (
-        <div className="rounded-md border overflow-hidden">
+        <div className="overflow-hidden rounded-md border">
             <Table>
                 <TableHeader className="bg-muted">
                     {table.getHeaderGroups().map((headerGroup) => (

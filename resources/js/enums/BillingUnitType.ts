@@ -8,11 +8,12 @@ export const BillingUnitType = {
     Hora: 'hora',
 } as const;
 
-export type BillingUnitType = (typeof BillingUnitType)[keyof typeof BillingUnitType];
+export type BillingUnitType =
+    (typeof BillingUnitType)[keyof typeof BillingUnitType];
 
 export const BillingUnitTypeLabel: Record<BillingUnitType, string> = {
-    'viaje': 'Viaje',
-    'pasajero': 'Pasajero',
-    'dia': 'Día',
-    'hora': 'Hora',
+    viaje: 'Viaje',
+    pasajero: 'Pasajero',
+    dia: 'Día',
+    hora: 'Hora',
 };

@@ -124,9 +124,7 @@ function useSidebarWidthPx(): number {
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
-        const mq = window.matchMedia(
-            `(min-width: ${SIDEBAR_BREAKPOINT_PX}px)`,
-        );
+        const mq = window.matchMedia(`(min-width: ${SIDEBAR_BREAKPOINT_PX}px)`);
         const update = () =>
             setPx(mq.matches ? SIDEBAR_PX_DESKTOP : SIDEBAR_PX_MOBILE);
         update();
@@ -172,6 +170,11 @@ export default function HourlyGrid({
     onMount,
     recenterTo = null,
 }: HourlyGridProps) {
+    'use no memo';
+    // TanStack Virtual's useVirtualizer returns non-memoizable functions,
+    // so opt this component out of the React Compiler (same convention as
+    // the useServerTable pages). Silences react-hooks/incompatible-library.
+
     const scrollerRef = useRef<HTMLDivElement | null>(null);
     const sidebarPx = useSidebarWidthPx();
     // Mirror in a ref so stable callbacks read the latest value without
@@ -203,6 +206,7 @@ export default function HourlyGrid({
     const getScrollElement = useCallback(() => scrollerRef.current, []);
     const estimateSize = useCallback(() => PX_PER_DAY, []);
 
+    // eslint-disable-next-line react-hooks/incompatible-library
     const virtualizer = useVirtualizer({
         horizontal: true,
         count: numDays,

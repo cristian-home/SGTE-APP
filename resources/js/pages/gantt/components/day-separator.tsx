@@ -77,7 +77,7 @@ function DaySeparator({
             {isExecuted && (
                 <Badge
                     title="No se pueden crear nuevos servicios en este día"
-                    className="h-4 gap-1 whitespace-nowrap border border-green-200 bg-transparent px-1.5 text-[10px] font-normal text-green-700 dark:border-green-800 dark:text-green-300"
+                    className="h-4 gap-1 border border-green-200 bg-transparent px-1.5 text-[10px] font-normal whitespace-nowrap text-green-700 dark:border-green-800 dark:text-green-300"
                 >
                     <Lock className="size-2.5" aria-hidden />
                     Bloqueado para nuevos servicios

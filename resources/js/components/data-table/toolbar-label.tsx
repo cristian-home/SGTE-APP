@@ -20,8 +20,6 @@ export function ToolbarLabel({
     className?: string;
 }) {
     return (
-        <span className={cn('hidden @lg:inline', className)}>
-            {children}
-        </span>
+        <span className={cn('hidden @lg:inline', className)}>{children}</span>
     );
 }
