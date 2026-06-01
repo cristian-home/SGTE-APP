@@ -152,6 +152,25 @@ test('accepts store when driver license category is compatible with vehicle type
     $response->assertSessionDoesntHaveErrors(['driver_id', 'vehicle_id']);
 });
 
+test('accepts store for a Microbús with a compatible driver license', function (): void {
+    // Microbús accepts C1/C2/C3 (same as Van). Regression guard for the
+    // license map that originally omitted the Microbús type.
+    $vehicle = Vehicle::factory()->create([
+        'is_third_party' => false,
+        'type' => VehicleType::Microbus,
+    ]);
+    $driver = Driver::factory()->create([
+        'license_category' => LicenseCategory::C1,
+    ]);
+
+    $response = post(route('services.store'), validStorePayload([
+        'vehicle_id' => $vehicle->id,
+        'driver_id' => $driver->id,
+    ]));
+
+    $response->assertSessionDoesntHaveErrors(['driver_id', 'vehicle_id']);
+});
+
 test('third-party vehicles bypass driver-license checks', function (): void {
     // Third-party vehicles have driver_id nulled in prepareForValidation,
     // so the driver-license path is not triggered even if a bad driver is

@@ -41,6 +41,7 @@ class ServiceStoreRequest extends FormRequest
     protected const LICENSE_CATEGORY_MAP = [
         VehicleType::Bus->value => [LicenseCategory::C2->value, LicenseCategory::C3->value],
         VehicleType::Buseta->value => [LicenseCategory::C2->value, LicenseCategory::C3->value],
+        VehicleType::Microbus->value => [LicenseCategory::C1->value, LicenseCategory::C2->value, LicenseCategory::C3->value],
         VehicleType::Van->value => [LicenseCategory::C1->value, LicenseCategory::C2->value, LicenseCategory::C3->value],
         VehicleType::Automobile->value => [LicenseCategory::C1->value, LicenseCategory::C2->value, LicenseCategory::C3->value],
     ];
