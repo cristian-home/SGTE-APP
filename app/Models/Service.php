@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Concerns\HasTimezone;
 use App\Enums\PaymentMethod;
 use App\Enums\ServiceStatus;
+use App\Support\SearchField;
 use App\Support\Tz;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -501,10 +502,15 @@ class Service extends Model
     }
 
     /**
-     * @return array<int, string>
+     * @return array<int, SearchField>
      */
     public function searchableColumns(): array
     {
-        return ['service_number', 'origin_address', 'destination_address', ['driver.first_name', 'driver.first_lastname']];
+        return [
+            SearchField::substring('service_number'),
+            SearchField::fuzzy('origin_address'),
+            SearchField::fuzzy('destination_address'),
+            SearchField::fuzzy(['driver.first_name', 'driver.first_lastname']),
+        ];
     }
 }

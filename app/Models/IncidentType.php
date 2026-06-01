@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\IncidentSeverity;
+use App\Support\SearchField;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -13,6 +14,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class IncidentType extends Model
 {
+    use Concerns\SearchesDatabase;
     use HasFactory, SoftDeletes;
     use LogsActivity, Searchable;
 
@@ -75,6 +77,18 @@ class IncidentType extends Model
             'name' => $this->name,
             'severity' => $this->severity?->value,
             'description' => $this->description,
+        ];
+    }
+
+    /**
+     * @return array<int, SearchField>
+     */
+    public function searchableColumns(): array
+    {
+        return [
+            SearchField::substring('code'),
+            SearchField::fuzzy('name'),
+            SearchField::fuzzy('description'),
         ];
     }
 }

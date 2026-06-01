@@ -30,6 +30,7 @@ class VehicleLocationController extends Controller
                 'capturedBy:id,name',
             ])
             ->allowedFilters([
+                AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
                 AllowedFilter::exact('vehicle_id'),
                 AllowedFilter::exact('is_manual'),
                 AllowedFilter::callback('recorded_from', function (Builder $query, $value): void {

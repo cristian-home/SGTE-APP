@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\SearchField;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,6 +14,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class ThirdParty extends Model
 {
+    use Concerns\SearchesDatabase;
     use HasFactory, SoftDeletes;
     use LogsActivity, Searchable;
 
@@ -82,6 +84,19 @@ class ThirdParty extends Model
     {
         return LogOptions::defaults()
             ->logOnly(['id', 'document_type_id', 'identification_number', 'is_natural_person', 'first_name', 'second_name', 'first_lastname', 'second_lastname', 'company_name', 'trade_name', 'municipality_id', 'address', 'phone', 'email', 'is_customer', 'is_provider', 'active']);
+    }
+
+    /**
+     * @return array<int, SearchField>
+     */
+    public function searchableColumns(): array
+    {
+        return [
+            SearchField::substring('identification_number'),
+            SearchField::fuzzy('company_name'),
+            SearchField::fuzzy('trade_name'),
+            SearchField::fuzzy(['first_name', 'second_name', 'first_lastname', 'second_lastname']),
+        ];
     }
 
     /**

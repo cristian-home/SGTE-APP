@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Concerns\HasTimezone;
 use App\Enums\LicenseCategory;
+use App\Support\SearchField;
 use App\Support\Tz;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -16,6 +17,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Driver extends Model
 {
+    use Concerns\SearchesDatabase;
     use HasFactory, HasTimezone, LogsActivity, Searchable, SoftDeletes;
 
     /**
@@ -261,6 +263,19 @@ class Driver extends Model
             'severance_fund_id' => $this->severance_fund_id,
             'has_social_security' => $this->has_social_security,
             'active' => $this->active,
+        ];
+    }
+
+    /**
+     * @return array<int, SearchField>
+     */
+    public function searchableColumns(): array
+    {
+        return [
+            SearchField::substring('identification_number'),
+            SearchField::substring('phone'),
+            SearchField::substring('email'),
+            SearchField::fuzzy(['first_name', 'second_name', 'first_lastname', 'second_lastname']),
         ];
     }
 }
