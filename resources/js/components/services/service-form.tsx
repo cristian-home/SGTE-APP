@@ -63,7 +63,7 @@ import type { DayStatus } from '@/types/models';
 export interface VehicleOption {
     id: number;
     plate: string;
-    /** Serialized VehicleType enum value ('bus' | 'buseta' | 'van' | 'automobile'). Null for legacy rows without a type. */
+    /** Serialized VehicleType enum value ('bus' | 'buseta' | 'microbus' | 'van' | 'automobile'). Null for legacy rows without a type. */
     type: VehicleType | null;
     is_third_party: boolean;
     third_party_id: number | null;

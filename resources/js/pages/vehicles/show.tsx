@@ -16,6 +16,7 @@ import {
 import VehicleDialog from '@/components/vehicles/vehicle-dialog';
 import { VehicleDocumentPills } from '@/components/vehicles/vehicle-document-pills';
 import { type ThirdPartyOption } from '@/components/vehicles/vehicle-form';
+import { type VehicleType, VehicleTypeLabel } from '@/enums/VehicleType';
 import AppLayout from '@/layouts/app-layout';
 import services from '@/routes/services';
 import vehicles from '@/routes/vehicles';
@@ -66,13 +67,6 @@ type ShowVehicle = Pick<
         company_name: string | null;
         is_natural_person: boolean;
     } | null;
-};
-
-const typeLabels: Record<string, string> = {
-    bus: 'Bus',
-    buseta: 'Buseta',
-    van: 'Van',
-    automobile: 'Automóvil',
 };
 
 const statusLabels: Record<string, string> = {
@@ -278,7 +272,9 @@ export default function VehiclesShow({
                             <Field label="Línea">{vehicle.line}</Field>
                             <Field label="Modelo">{vehicle.model_year}</Field>
                             <Field label="Tipo">
-                                {typeLabels[vehicle.type] ?? vehicle.type}
+                                {VehicleTypeLabel[
+                                    vehicle.type as VehicleType
+                                ] ?? vehicle.type}
                             </Field>
                             <Field label="Capacidad">
                                 {vehicle.capacity} pasajeros
