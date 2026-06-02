@@ -1,4 +1,5 @@
 import { Check, PlusCircle } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,6 +28,8 @@ interface DataTableFacetedFilterProps {
     selected: string[];
     onSelectionChange: (values: string[]) => void;
     capitalizeOptions?: boolean;
+    /** Split into "with records" + a collapsible "Otras (N)" section. */
+    sectioned?: boolean;
 }
 
 export function DataTableFacetedFilter({
@@ -35,8 +38,11 @@ export function DataTableFacetedFilter({
     selected,
     onSelectionChange,
     capitalizeOptions,
+    sectioned,
 }: DataTableFacetedFilterProps) {
     'use no memo';
+    const [search, setSearch] = useState('');
+    const [showOthers, setShowOthers] = useState(false);
     const selectedSet = new Set(selected);
 
     function toggleValue(value: string) {
@@ -48,6 +54,65 @@ export function DataTableFacetedFilter({
         }
         onSelectionChange(Array.from(next));
     }
+
+    // Partition only for sectioned facets: values with records on top
+    // (most relevant first), the rest (count 0) deferred to "Otras".
+    const { withRecords, others } = useMemo(() => {
+        if (!sectioned) {
+            return { withRecords: options, others: [] as FilterOption[] };
+        }
+        const wr = options
+            .filter((o) => (o.count ?? 0) > 0)
+            .sort((a, b) => (b.count ?? 0) - (a.count ?? 0));
+        const ot = options
+            .filter((o) => (o.count ?? 0) === 0)
+            .sort((a, b) => a.label.localeCompare(b.label));
+        return { withRecords: wr, others: ot };
+    }, [options, sectioned]);
+
+    // Mount the "others" items when expanded OR while searching, so the
+    // filter's own search can still reach every value without paying the
+    // cost of rendering them all by default.
+    const showOthersGroup = showOthers || search.trim() !== '';
+
+    const renderItem = (option: FilterOption, greyed = false) => {
+        const isSelected = selectedSet.has(option.value);
+        return (
+            <CommandItem
+                key={option.value}
+                value={option.label}
+                onSelect={() => toggleValue(option.value)}
+            >
+                <div
+                    className={cn(
+                        'mr-2 flex size-4 items-center justify-center rounded-sm border border-primary',
+                        isSelected
+                            ? 'bg-primary text-primary-foreground'
+                            : 'opacity-50 [&_svg]:invisible',
+                    )}
+                >
+                    <Check className="size-4" />
+                </div>
+                {option.icon && (
+                    <option.icon className="mr-2 size-4 text-muted-foreground" />
+                )}
+                <span
+                    className={cn(
+                        'truncate',
+                        capitalizeOptions && 'capitalize',
+                        greyed && 'text-muted-foreground',
+                    )}
+                >
+                    {option.label}
+                </span>
+                {option.count !== undefined && !greyed && (
+                    <span className="ml-auto pl-2 text-xs text-muted-foreground tabular-nums">
+                        {option.count}
+                    </span>
+                )}
+            </CommandItem>
+        );
+    };
 
     return (
         <Popover>
@@ -75,48 +140,42 @@ export function DataTableFacetedFilter({
                     )}
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-50 p-0" align="start">
+            <PopoverContent className="w-56 p-0" align="start">
                 <Command>
-                    <CommandInput placeholder={label} />
+                    <CommandInput
+                        placeholder={label}
+                        value={search}
+                        onValueChange={setSearch}
+                    />
                     <CommandList>
                         <CommandEmpty>Sin resultados.</CommandEmpty>
                         <CommandGroup>
-                            {options.map((option) => {
-                                const isSelected = selectedSet.has(
-                                    option.value,
-                                );
-                                return (
-                                    <CommandItem
-                                        key={option.value}
-                                        onSelect={() =>
-                                            toggleValue(option.value)
-                                        }
-                                    >
-                                        <div
-                                            className={cn(
-                                                'mr-2 flex size-4 items-center justify-center rounded-sm border border-primary',
-                                                isSelected
-                                                    ? 'bg-primary text-primary-foreground'
-                                                    : 'opacity-50 [&_svg]:invisible',
-                                            )}
-                                        >
-                                            <Check className="size-4" />
-                                        </div>
-                                        {option.icon && (
-                                            <option.icon className="mr-2 size-4 text-muted-foreground" />
-                                        )}
-                                        <span
-                                            className={cn(
-                                                capitalizeOptions &&
-                                                    'capitalize',
-                                            )}
-                                        >
-                                            {option.label}
-                                        </span>
-                                    </CommandItem>
-                                );
-                            })}
+                            {withRecords.map((option) => renderItem(option))}
                         </CommandGroup>
+                        {sectioned && others.length > 0 && (
+                            <>
+                                <CommandSeparator />
+                                {showOthersGroup ? (
+                                    <CommandGroup
+                                        heading={`Otras (${others.length})`}
+                                    >
+                                        {others.map((option) =>
+                                            renderItem(option, true),
+                                        )}
+                                    </CommandGroup>
+                                ) : (
+                                    <CommandGroup>
+                                        <CommandItem
+                                            value="__show_others__"
+                                            onSelect={() => setShowOthers(true)}
+                                            className="text-muted-foreground"
+                                        >
+                                            Otras ({others.length})
+                                        </CommandItem>
+                                    </CommandGroup>
+                                )}
+                            </>
+                        )}
                         {selectedSet.size > 0 && (
                             <>
                                 <CommandSeparator />

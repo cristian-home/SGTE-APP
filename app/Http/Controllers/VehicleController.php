@@ -10,6 +10,7 @@ use App\Models\Service;
 use App\Models\ThirdParty;
 use App\Models\Vehicle;
 use App\Models\VehicleType;
+use App\Support\FacetCounts;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -41,26 +42,7 @@ class VehicleController extends Controller
                 'municipality:id,name,department_id',
                 'municipality.department:id,name',
             ])
-            ->allowedFilters([
-                AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
-                'internal_code',
-                'plate',
-                'brand',
-                AllowedFilter::exact('vehicle_type_id'),
-                AllowedFilter::exact('municipality_id'),
-                AllowedFilter::exact('is_third_party'),
-                AllowedFilter::exact('status'),
-                AllowedFilter::callback('docs_status', function (Builder $query, $value) {
-                    // The faceted filter UI is multi-select but docs_status is
-                    // semantically single-select. If the URL carries multiple
-                    // values (comma-separated), honor the first one.
-                    $first = is_array($value) ? ($value[0] ?? '') : explode(',', (string) $value)[0];
-                    $this->applyDocsStatusFilter($query, $first);
-                }),
-                AllowedFilter::callback('soat_expired', fn (Builder $query, $value) => $this->applyDocumentExpiredFilter($query, 'soat_due_at', $value)),
-                AllowedFilter::callback('rtm_expired', fn (Builder $query, $value) => $this->applyDocumentExpiredFilter($query, 'rtm_due_at', $value)),
-                AllowedFilter::callback('operation_card_expired', fn (Builder $query, $value) => $this->applyDocumentExpiredFilter($query, 'operation_card_due_at', $value)),
-            ])
+            ->allowedFilters($this->allowedFilters())
             ->allowedSorts(['internal_code', 'plate', 'model_year', 'municipality_id', 'status'])
             ->defaultSort('plate')
             ->paginate($request->perPage())
@@ -73,8 +55,43 @@ class VehicleController extends Controller
         return Inertia::render('vehicles/index', [
             'vehicles' => $vehicles,
             'suggestedInternalCode' => Vehicle::nextInternalCode(),
+            'facetCounts' => FacetCounts::for(
+                Vehicle::class,
+                $this->allowedFilters(),
+                $request,
+                ['municipality_id' => 'municipality_id'],
+            ),
             ...$this->modalOptions(),
         ]);
+    }
+
+    /**
+     * QueryBuilder filters shared by index() and the facet-count helper.
+     *
+     * @return array<int, mixed>
+     */
+    protected function allowedFilters(): array
+    {
+        return [
+            AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
+            'internal_code',
+            'plate',
+            'brand',
+            AllowedFilter::exact('vehicle_type_id'),
+            AllowedFilter::exact('municipality_id'),
+            AllowedFilter::exact('is_third_party'),
+            AllowedFilter::exact('status'),
+            AllowedFilter::callback('docs_status', function (Builder $query, $value) {
+                // The faceted filter UI is multi-select but docs_status is
+                // semantically single-select. If the URL carries multiple
+                // values (comma-separated), honor the first one.
+                $first = is_array($value) ? ($value[0] ?? '') : explode(',', (string) $value)[0];
+                $this->applyDocsStatusFilter($query, $first);
+            }),
+            AllowedFilter::callback('soat_expired', fn (Builder $query, $value) => $this->applyDocumentExpiredFilter($query, 'soat_due_at', $value)),
+            AllowedFilter::callback('rtm_expired', fn (Builder $query, $value) => $this->applyDocumentExpiredFilter($query, 'rtm_due_at', $value)),
+            AllowedFilter::callback('operation_card_expired', fn (Builder $query, $value) => $this->applyDocumentExpiredFilter($query, 'operation_card_due_at', $value)),
+        ];
     }
 
     /**

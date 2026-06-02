@@ -11,6 +11,7 @@ import VehicleDialog, {
 import { vehicleDocsAggregateStatus } from '@/components/vehicles/vehicle-document-pills';
 import { type VehicleTypeOption } from '@/components/vehicles/vehicle-form';
 import { useServerTable } from '@/hooks/use-server-table';
+import { type FacetCounts, withCounts } from '@/lib/facet-filter';
 import AppLayout from '@/layouts/app-layout';
 import vehicles from '@/routes/vehicles';
 
@@ -88,12 +89,14 @@ export default function VehiclesIndex({
     municipalities,
     thirdParties,
     vehicleTypes,
+    facetCounts,
     suggestedInternalCode,
 }: {
     vehicles: PaginatedData<Vehicle>;
     municipalities: MunicipalityOption[];
     thirdParties: ThirdPartyOption[];
     vehicleTypes: VehicleTypeOption[];
+    facetCounts: FacetCounts;
     suggestedInternalCode: string;
 }) {
     'use no memo';
@@ -125,16 +128,20 @@ export default function VehiclesIndex({
             {
                 name: 'municipality_id',
                 label: 'Ciudad',
-                options: municipalities.map((m) => ({
-                    value: String(m.id),
-                    label: m.department
-                        ? `${m.name} (${m.department.name})`
-                        : m.name,
-                })),
+                options: withCounts(
+                    municipalities.map((m) => ({
+                        value: String(m.id),
+                        label: m.department
+                            ? `${m.name} (${m.department.name})`
+                            : m.name,
+                    })),
+                    facetCounts.municipality_id,
+                ),
                 capitalizeOptions: true,
+                sectioned: true,
             },
         ],
-        [municipalities],
+        [municipalities, facetCounts],
     );
 
     const {
