@@ -73,7 +73,6 @@
         "laravel-vite-plugin": "^2.1",
         "lodash.throttle": "^4.1.1",
         "lucide-react": "^0.475.0",
-        "maplibre-gl": "^5.24.0",
         "maska": "^3.2.0",
         "radix-ui": "^1.4.3",
         "react": "^19.2.4",
