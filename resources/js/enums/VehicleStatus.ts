@@ -10,7 +10,7 @@ export const VehicleStatus = {
 export type VehicleStatus = (typeof VehicleStatus)[keyof typeof VehicleStatus];
 
 export const VehicleStatusLabel: Record<VehicleStatus, string> = {
-    'active': 'Activo',
-    'maintenance': 'En Mantenimiento',
-    'retired': 'Retirado',
+    active: 'Activo',
+    maintenance: 'En Mantenimiento',
+    retired: 'Retirado',
 };

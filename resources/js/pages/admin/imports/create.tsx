@@ -137,9 +137,10 @@ export default function ImportsCreate({
                                             vehicleTypeCodes.length > 0 && (
                                                 <p className="text-xs text-muted-foreground">
                                                     Tipos válidos para la
-                                                    columna{' '}
-                                                    <code>type</code>:{' '}
-                                                    {vehicleTypeCodes.join(', ')}
+                                                    columna <code>type</code>:{' '}
+                                                    {vehicleTypeCodes.join(
+                                                        ', ',
+                                                    )}
                                                     .
                                                 </p>
                                             )}
