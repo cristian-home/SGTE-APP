@@ -11,14 +11,16 @@ import {
 import { MapPin } from 'lucide-react';
 import { useEffect } from 'react';
 import { ErrorBoundary } from '@/components/error-boundary';
+import { MapDisabledPlaceholder } from '@/components/map-disabled-placeholder';
 import { MapUnavailable } from '@/components/map-unavailable';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAppearance } from '@/hooks/use-appearance';
-import { useDeferredMount } from '@/hooks/use-deferred-mount';
+import { useInViewMount } from '@/hooks/use-in-view-mount';
 import {
     GOOGLE_MAPS_BROWSER_KEY,
     GOOGLE_MAPS_MAP_ID,
+    MAPS_ENABLED,
     MEDELLIN_CENTER,
     MEDELLIN_ZOOM,
 } from '@/lib/google-maps';
@@ -51,10 +53,11 @@ export function LiveVehiclesMap({
     className?: string;
 }) {
     const { resolvedAppearance } = useAppearance();
-    // Defer the map past the Inertia page swap so a Google Maps marker
-    // crash lands in a normal commit the ErrorBoundary catches instead of
-    // escaping swapComponent's flushSync and blanking the page.
-    const mapReady = useDeferredMount();
+    // Mount the dynamic map only once it scrolls into view — avoids a
+    // billed Map Load on every dashboard visit when the user may never
+    // look at it. (Also keeps the mount out of the Inertia swap flushSync,
+    // so the ErrorBoundary still catches a Google Maps crash.)
+    const { ref: mapRef, inView: mapReady } = useInViewMount<HTMLDivElement>();
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -88,13 +91,18 @@ export function LiveVehiclesMap({
                         Sin ubicaciones recientes.
                     </p>
                 ) : (
-                    <div className="h-70 w-full overflow-hidden rounded-md border">
+                    <div
+                        ref={mapRef}
+                        className="h-70 w-full overflow-hidden rounded-md border"
+                    >
                         <ErrorBoundary
                             fallback={({ reset }) => (
                                 <MapUnavailable reset={reset} />
                             )}
                         >
-                            {!mapReady ? (
+                            {!MAPS_ENABLED ? (
+                                <MapDisabledPlaceholder />
+                            ) : !mapReady ? (
                                 <div className="size-full animate-pulse bg-muted/30" />
                             ) : (
                                 <APIProvider apiKey={GOOGLE_MAPS_BROWSER_KEY}>

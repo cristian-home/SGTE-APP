@@ -1,5 +1,4 @@
 import { usePage } from '@inertiajs/react';
-import { APIProvider } from '@vis.gl/react-google-maps';
 import { endOfDay, format as formatDate, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -27,6 +26,7 @@ import LocationField, {
     type CoordinatesSource,
 } from '@/components/location-field';
 import MapPickerModal from '@/components/map-picker-modal';
+import { MapsScope } from '@/components/maps-scope';
 import { type MunicipalityOption } from '@/components/municipality-combobox';
 import BillingGroupsInput from '@/components/services/billing-groups-input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -54,7 +54,6 @@ import {
 import { PaymentMethod, PaymentMethodLabel } from '@/enums/PaymentMethod';
 import { ServiceStatus, ServiceStatusLabel } from '@/enums/ServiceStatus';
 import { dateToWallClock, viewerToday, wallClockToDate } from '@/lib/datetime';
-import { GOOGLE_MAPS_BROWSER_KEY } from '@/lib/google-maps';
 import { normalizeCity } from '@/lib/normalize-city';
 import { cn } from '@/lib/utils';
 import type { DayStatus } from '@/types/models';
@@ -865,9 +864,10 @@ export default function ServiceForm({
         : actualLowerBound;
 
     return (
-        // One APIProvider for the whole form so both LocationFields and
-        // both MapPickerModals share a single Google Maps JS load.
-        <APIProvider apiKey={GOOGLE_MAPS_BROWSER_KEY}>
+        // One maps scope for the whole form so both LocationFields and
+        // both MapPickerModals share a single Google Maps JS load (and are
+        // disabled together when maps are off).
+        <MapsScope>
             {isFullyLocked && (
                 <Alert variant="destructive">
                     <Lock className="size-4" />
@@ -1919,6 +1919,6 @@ export default function ServiceForm({
                     </CardContent>
                 </Card>
             )}
-        </APIProvider>
+        </MapsScope>
     );
 }

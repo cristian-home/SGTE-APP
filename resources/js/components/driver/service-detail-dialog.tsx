@@ -188,7 +188,6 @@ export function ServiceDetailDialog({
                                 service.destination_coordinates ?? null
                             }
                             geometry={service.route_geometry ?? null}
-                            width={560}
                             height={260}
                         />
 

@@ -12,6 +12,7 @@ import { FocusService } from '@/components/gps/focus-service';
 import { RoutePolyline } from '@/components/gps/route-polyline';
 import { ServicesPanel } from '@/components/gps/services-panel';
 import { VehicleMarker } from '@/components/gps/vehicle-marker';
+import { MapDisabledPlaceholder } from '@/components/map-disabled-placeholder';
 import { MapUnavailable } from '@/components/map-unavailable';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,6 +29,7 @@ import AppLayout from '@/layouts/app-layout';
 import {
     GOOGLE_MAPS_BROWSER_KEY,
     GOOGLE_MAPS_MAP_ID,
+    MAPS_ENABLED,
     MEDELLIN_CENTER,
     MEDELLIN_ZOOM,
 } from '@/lib/google-maps';
@@ -189,15 +191,13 @@ export default function GpsMap({
                                 <MapUnavailable reset={reset} />
                             )}
                         >
-                            {!mapReady ? (
+                            {!MAPS_ENABLED ? (
+                                <MapDisabledPlaceholder />
+                            ) : !mapReady ? (
                                 <div className="size-full animate-pulse bg-muted/30" />
                             ) : (
                                 <APIProvider apiKey={GOOGLE_MAPS_BROWSER_KEY}>
                                     <GoogleMap
-                                        // Google applies `colorScheme` only at map
-                                        // creation, so re-key the map on theme change
-                                        // to force a fresh instance in the new scheme.
-                                        key={resolvedAppearance}
                                         colorScheme={
                                             resolvedAppearance === 'dark'
                                                 ? 'DARK'

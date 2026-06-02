@@ -1,15 +1,13 @@
 import { MapPin } from 'lucide-react';
-import { useAppearance } from '@/hooks/use-appearance';
-import { staticMapUrl } from '@/lib/google-maps';
+import { MapPreview } from '@/components/maps/map-preview';
 import { cn } from '@/lib/utils';
 
 interface LocationStaticMapProps {
     /** "lat,lng" string, or null when the location is unknown. */
     coordinates: string | null;
-    /** "Origen" / "Destino" — used for the alt text and empty-state copy. */
+    /** "Origen" / "Destino" — used for the aria label and empty-state copy. */
     label: string;
     className?: string;
-    width?: number;
     height?: number;
 }
 
@@ -36,18 +34,16 @@ function parseCoordinates(
 }
 
 /**
- * Google Maps Static API preview for a single coordinate. Renders a
- * neutral "Sin ubicación" placeholder (never a broken image) when the
- * coordinates are absent or unparseable.
+ * Single-coordinate preview rendered locally with MapLibre + OpenStreetMap
+ * (no Google Static Maps request). Neutral "Sin ubicación" placeholder when
+ * the coordinates are absent or unparseable.
  */
 export default function LocationStaticMap({
     coordinates,
     label,
     className,
-    width = 300,
     height = 160,
 }: LocationStaticMapProps) {
-    const { resolvedAppearance } = useAppearance();
     const parsed = parseCoordinates(coordinates);
 
     if (!parsed) {
@@ -66,22 +62,11 @@ export default function LocationStaticMap({
     }
 
     return (
-        <img
-            src={staticMapUrl({
-                lat: parsed.lat,
-                lng: parsed.lng,
-                width,
-                height,
-                theme: resolvedAppearance === 'dark' ? 'dark' : 'light',
-            })}
-            alt={`Mapa de ${label.toLowerCase()}`}
-            width={width}
+        <MapPreview
+            points={[{ lat: parsed.lat, lng: parsed.lng }]}
             height={height}
-            loading="lazy"
-            className={cn(
-                'h-auto w-full rounded-md border object-cover',
-                className,
-            )}
+            className={className}
+            ariaLabel={`Mapa de ${label.toLowerCase()}`}
         />
     );
 }

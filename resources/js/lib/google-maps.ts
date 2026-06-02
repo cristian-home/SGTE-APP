@@ -18,6 +18,18 @@ export const GOOGLE_MAPS_BROWSER_KEY: string =
 export const GOOGLE_MAPS_MAP_ID: string =
     (import.meta.env.VITE_GOOGLE_MAPS_MAP_ID as string | undefined) ?? '';
 
+/**
+ * Master switch for ALL Google Maps usage (dynamic maps + geocoding).
+ * Set `VITE_GOOGLE_MAPS_ENABLED=false` in local `.env` to render
+ * placeholders instead of real maps — every Google request from dev is a
+ * billed call, and HMR + StrictMode multiply map mounts, which is how a
+ * single dev on localhost ran up the bill. Defaults to enabled so
+ * staging/prod are unaffected unless they opt out.
+ */
+export const MAPS_ENABLED: boolean =
+    (import.meta.env.VITE_GOOGLE_MAPS_ENABLED as string | undefined) !==
+    'false';
+
 if (import.meta.env.PROD && !GOOGLE_MAPS_BROWSER_KEY) {
     console.warn(
         'VITE_GOOGLE_MAPS_BROWSER_KEY is empty — maps, address autocomplete and static-map previews will fail.',

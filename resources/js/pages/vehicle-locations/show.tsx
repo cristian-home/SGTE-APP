@@ -140,7 +140,6 @@ export default function VehicleLocationShow({
                             <LocationStaticMap
                                 coordinates={coords}
                                 label="Ubicación"
-                                width={900}
                                 height={480}
                                 className="h-auto w-full"
                             />
