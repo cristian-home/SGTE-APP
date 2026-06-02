@@ -944,26 +944,28 @@ export default function ServiceForm({
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {serviceNumber ? (
-                        <div className="grid gap-2">
-                            <Label htmlFor="service_number">Consecutivo</Label>
-                            <div
-                                id="service_number"
-                                className="flex h-9 w-fit items-center rounded-md bg-muted px-3 font-mono text-base font-semibold tracking-wide tabular-nums"
-                                aria-label="Consecutivo del servicio"
-                            >
-                                {serviceNumber}
+                    <div className="flex flex-col gap-4 md:flex-row md:items-start">
+                        {serviceNumber ? (
+                            <div className="grid shrink-0 gap-2">
+                                <Label htmlFor="service_number">
+                                    Consecutivo
+                                </Label>
+                                <div
+                                    id="service_number"
+                                    className="flex h-9 w-fit items-center rounded-md bg-muted px-3 font-mono text-base font-semibold tracking-wide whitespace-nowrap tabular-nums"
+                                    aria-label="Consecutivo del servicio"
+                                >
+                                    {serviceNumber}
+                                </div>
+                                <p className="max-w-48 text-xs text-muted-foreground">
+                                    {mode === 'create'
+                                        ? 'Reservado al abrir; se confirma al guardar.'
+                                        : 'Identificador del servicio.'}
+                                </p>
                             </div>
-                            <p className="text-xs text-muted-foreground">
-                                {mode === 'create'
-                                    ? 'Reservado al abrir; se confirma al guardar.'
-                                    : 'Identificador del servicio.'}
-                            </p>
-                        </div>
-                    ) : null}
-                    <div className="grid gap-4 md:grid-cols-2 md:grid-rows-[auto_1fr_auto]">
+                        ) : null}
                         <div
-                            className="group/field grid gap-2 md:row-span-3 md:grid-rows-subgrid"
+                            className="group/field grid min-w-0 flex-1 gap-2"
                             data-error={invalid('contract_id')}
                         >
                             <Label htmlFor="contract_id">Contrato *</Label>
@@ -1061,7 +1063,7 @@ export default function ServiceForm({
                             <FieldFooter error={errors.contract_id} />
                         </div>
                         <div
-                            className="group/field grid gap-2 md:row-span-3 md:grid-rows-subgrid"
+                            className="group/field grid shrink-0 gap-2"
                             data-error={invalid('service_status')}
                         >
                             <Label htmlFor="service_status">Estado *</Label>
@@ -1092,14 +1094,14 @@ export default function ServiceForm({
                                 }}
                                 disabled={isFieldDisabled('service_status')}
                                 aria-invalid={invalid('service_status')}
-                                className="w-full justify-stretch"
+                                className="w-fit"
                             >
                                 {Object.entries(ServiceStatus).map(
                                     ([key, value]) => (
                                         <ToggleGroupItem
                                             key={key}
                                             value={value}
-                                            className="flex-1"
+                                            className="px-4"
                                         >
                                             {ServiceStatusLabel[value]}
                                         </ToggleGroupItem>
