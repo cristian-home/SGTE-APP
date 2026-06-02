@@ -959,7 +959,7 @@ export default function ServiceForm({
                                 </div>
                                 <p className="max-w-48 text-xs text-muted-foreground">
                                     {mode === 'create'
-                                        ? 'Reservado al abrir; se confirma al guardar.'
+                                        ? 'Asignación automática.'
                                         : 'Identificador del servicio.'}
                                 </p>
                             </div>
