@@ -15,6 +15,7 @@ import { MapUnavailable } from '@/components/map-unavailable';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAppearance } from '@/hooks/use-appearance';
+import { useDeferredMount } from '@/hooks/use-deferred-mount';
 import {
     GOOGLE_MAPS_BROWSER_KEY,
     GOOGLE_MAPS_MAP_ID,
@@ -50,6 +51,10 @@ export function LiveVehiclesMap({
     className?: string;
 }) {
     const { resolvedAppearance } = useAppearance();
+    // Defer the map past the Inertia page swap so a Google Maps marker
+    // crash lands in a normal commit the ErrorBoundary catches instead of
+    // escaping swapComponent's flushSync and blanking the page.
+    const mapReady = useDeferredMount();
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -89,43 +94,47 @@ export function LiveVehiclesMap({
                                 <MapUnavailable reset={reset} />
                             )}
                         >
-                            <APIProvider apiKey={GOOGLE_MAPS_BROWSER_KEY}>
-                                <GoogleMap
-                                    mapId={GOOGLE_MAPS_MAP_ID}
-                                    defaultCenter={MEDELLIN_CENTER}
-                                    defaultZoom={MEDELLIN_ZOOM}
-                                    gestureHandling="cooperative"
-                                    disableDefaultUI
-                                    colorScheme={
-                                        resolvedAppearance === 'dark'
-                                            ? 'DARK'
-                                            : 'LIGHT'
-                                    }
-                                >
-                                    <FitVehicleBounds vehicles={vehicles} />
-                                    {vehicles.map((vehicle) => (
-                                        <AdvancedMarker
-                                            key={vehicle.service_id}
-                                            position={{
-                                                lat: vehicle.location.lat,
-                                                lng: vehicle.location.lng,
-                                            }}
-                                            title={vehicle.vehicle_plate}
-                                            onClick={() =>
-                                                router.visit(
-                                                    `/services/${vehicle.service_id}`,
-                                                )
-                                            }
-                                        >
-                                            <Pin
-                                                background="var(--primary)"
-                                                borderColor="var(--primary)"
-                                                glyphColor="var(--primary-foreground)"
-                                            />
-                                        </AdvancedMarker>
-                                    ))}
-                                </GoogleMap>
-                            </APIProvider>
+                            {!mapReady ? (
+                                <div className="size-full animate-pulse bg-muted/30" />
+                            ) : (
+                                <APIProvider apiKey={GOOGLE_MAPS_BROWSER_KEY}>
+                                    <GoogleMap
+                                        mapId={GOOGLE_MAPS_MAP_ID}
+                                        defaultCenter={MEDELLIN_CENTER}
+                                        defaultZoom={MEDELLIN_ZOOM}
+                                        gestureHandling="cooperative"
+                                        disableDefaultUI
+                                        colorScheme={
+                                            resolvedAppearance === 'dark'
+                                                ? 'DARK'
+                                                : 'LIGHT'
+                                        }
+                                    >
+                                        <FitVehicleBounds vehicles={vehicles} />
+                                        {vehicles.map((vehicle) => (
+                                            <AdvancedMarker
+                                                key={vehicle.service_id}
+                                                position={{
+                                                    lat: vehicle.location.lat,
+                                                    lng: vehicle.location.lng,
+                                                }}
+                                                title={vehicle.vehicle_plate}
+                                                onClick={() =>
+                                                    router.visit(
+                                                        `/services/${vehicle.service_id}`,
+                                                    )
+                                                }
+                                            >
+                                                <Pin
+                                                    background="var(--primary)"
+                                                    borderColor="var(--primary)"
+                                                    glyphColor="var(--primary-foreground)"
+                                                />
+                                            </AdvancedMarker>
+                                        ))}
+                                    </GoogleMap>
+                                </APIProvider>
+                            )}
                         </ErrorBoundary>
                     </div>
                 )}
