@@ -4,19 +4,37 @@ use App\Jobs\FetchServiceRoute;
 use App\Models\Service;
 use Illuminate\Support\Facades\Bus;
 
+test('creating a service with a pre-resolved route preserves the cached fields', function (): void {
+    Bus::fake();
+
+    $geometry = [[-75.5636, 6.2518], [-75.0, 5.4], [-74.0817, 4.6097]];
+
+    $service = Service::factory()->create([
+        'origin_coordinates' => '6.2518,-75.5636',
+        'destination_coordinates' => '4.6097,-74.0817',
+        'route_geometry' => $geometry,
+        'route_distance_m' => 12345,
+        'route_duration_s' => 678,
+        'route_fetched_at' => now(),
+        'route_source' => 'google',
+    ]);
+
+    // The saving hook only invalidates on UPDATE (a real coord change),
+    // so a create with a pre-resolved route — like the seeder does — keeps
+    // its geometry instead of being wiped because every column is "dirty".
+    $service->refresh();
+    expect($service->route_geometry)->toHaveCount(3);
+    expect($service->route_distance_m)->toBe(12345);
+    expect($service->route_source)->toBe('google');
+});
+
 test('changing origin_coordinates clears the cached route fields', function (): void {
     Bus::fake();
 
     $service = Service::factory()->create([
         'origin_coordinates' => '6.2518,-75.5636',
         'destination_coordinates' => '4.6097,-74.0817',
-    ]);
-
-    // Seed a cached route directly via the query builder — the model's
-    // saving hook would otherwise wipe these on the first save (new
-    // model: every fillable column is dirty).
-    Service::query()->whereKey($service->id)->update([
-        'route_geometry' => json_encode([[-75.5636, 6.2518], [-74.0817, 4.6097]]),
+        'route_geometry' => [[-75.5636, 6.2518], [-74.0817, 4.6097]],
         'route_distance_m' => 12345,
         'route_duration_s' => 678,
         'route_fetched_at' => now(),

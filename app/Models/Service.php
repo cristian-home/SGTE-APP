@@ -162,8 +162,13 @@ class Service extends Model
     {
         static::saving(function (Service $service): void {
             // Cached route invalidation: if either coord pair changed,
-            // wipe the cache so the saved hook can re-queue a fetch.
-            if ($service->isDirty('origin_coordinates') || $service->isDirty('destination_coordinates')) {
+            // wipe the cache so the saved hook can re-queue a fetch. Only on
+            // UPDATE — on INSERT every attribute is "dirty", so without the
+            // `exists` guard this would null out the route_geometry a caller
+            // (e.g. the seeder, or any create with a pre-resolved route) just
+            // set. A brand-new row has no previously-cached route to
+            // invalidate; its route fields are exactly what was provided.
+            if ($service->exists && ($service->isDirty('origin_coordinates') || $service->isDirty('destination_coordinates'))) {
                 $service->route_geometry = null;
                 $service->route_distance_m = null;
                 $service->route_duration_s = null;
