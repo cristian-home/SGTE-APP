@@ -36,40 +36,47 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Legacy-conversion migration: only relevant to databases that
-        // still have the old enum `type` column. Fresh installs already
-        // have vehicle_types (225419) + vehicles.vehicle_type_id
-        // (create_vehicles), so there is nothing to convert here.
-        if (! Schema::hasColumn('vehicles', 'type')) {
-            return;
+        $isPgsql = DB::connection()->getDriverName() === 'pgsql';
+        $now = now();
+
+        // The catalog table is created by 2026_02_27_225419 on every path —
+        // both fresh installs and v1.1.6→v1.2.0 upgrades (where 225419 runs
+        // as a pending migration before this one). This create+seed is only
+        // a defensive fallback for a DB that somehow lacks the table; on the
+        // real upgrade path it is skipped so we don't collide with 225419.
+        if (! Schema::hasTable('vehicle_types')) {
+            Schema::create('vehicle_types', function (Blueprint $table) {
+                $table->id();
+                $table->string('code', 30)->unique();
+                $table->string('name', 60);
+                $table->json('allowed_license_categories')->nullable();
+                $table->boolean('active')->default(true);
+                $table->unsignedSmallInteger('sort_order')->default(0);
+                $table->timestampsTz();
+                $table->softDeletesTz();
+            });
+
+            foreach ($this->seed as $row) {
+                DB::table('vehicle_types')->updateOrInsert(
+                    ['code' => $row['code']],
+                    [
+                        'name' => $row['name'],
+                        'allowed_license_categories' => json_encode($row['cats']),
+                        'active' => true,
+                        'sort_order' => $row['sort'],
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ],
+                );
+            }
         }
 
-        $isPgsql = DB::connection()->getDriverName() === 'pgsql';
-
-        Schema::create('vehicle_types', function (Blueprint $table) {
-            $table->id();
-            $table->string('code', 30)->unique();
-            $table->string('name', 60);
-            $table->json('allowed_license_categories')->nullable();
-            $table->boolean('active')->default(true);
-            $table->unsignedSmallInteger('sort_order')->default(0);
-            $table->timestampsTz();
-            $table->softDeletesTz();
-        });
-
-        $now = now();
-        foreach ($this->seed as $row) {
-            DB::table('vehicle_types')->updateOrInsert(
-                ['code' => $row['code']],
-                [
-                    'name' => $row['name'],
-                    'allowed_license_categories' => json_encode($row['cats']),
-                    'active' => true,
-                    'sort_order' => $row['sort'],
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ],
-            );
+        // Legacy enum conversion: only on databases that still have the old
+        // `type` column (the v1.1.6 production schema). Fresh installs
+        // already have vehicles.vehicle_type_id and no `type`, so there is
+        // nothing to convert and we stop here.
+        if (! Schema::hasColumn('vehicles', 'type')) {
+            return;
         }
 
         // Capture any legacy value present in the data that we didn't seed,
