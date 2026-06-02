@@ -1,5 +1,7 @@
 import { MapPin } from 'lucide-react';
+import { memo, useMemo } from 'react';
 import { MapDisabledPlaceholder } from '@/components/map-disabled-placeholder';
+import { StaticMapImage } from '@/components/services/static-map-image';
 import { useAppearance } from '@/hooks/use-appearance';
 import { MAPS_ENABLED, staticMapUrl } from '@/lib/google-maps';
 import { cn } from '@/lib/utils';
@@ -40,8 +42,11 @@ function parseCoordinates(
  * Google Maps Static API preview for a single coordinate. Renders a
  * neutral "Sin ubicación" placeholder (never a broken image) when the
  * coordinates are absent or unparseable.
+ *
+ * The `<img>` is deferred to in-view + client-only via `StaticMapImage`
+ * (no SSR fetch, no double fetch); the URL is memoized.
  */
-export default function LocationStaticMap({
+function LocationStaticMapImpl({
     coordinates,
     label,
     className,
@@ -49,7 +54,23 @@ export default function LocationStaticMap({
     height = 160,
 }: LocationStaticMapProps) {
     const { resolvedAppearance } = useAppearance();
+    const theme = resolvedAppearance === 'dark' ? 'dark' : 'light';
     const parsed = parseCoordinates(coordinates);
+
+    const src = useMemo(() => {
+        if (!MAPS_ENABLED || !parsed) {
+            return null;
+        }
+        return staticMapUrl({
+            lat: parsed.lat,
+            lng: parsed.lng,
+            width,
+            height,
+            theme,
+        });
+        // parsed derives purely from the coordinates string.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [coordinates, width, height, theme]);
 
     if (!parsed) {
         return (
@@ -66,9 +87,8 @@ export default function LocationStaticMap({
         );
     }
 
-    // Maps disabled (e.g. local dev) → placeholder instead of an <img>
-    // that would hit Google's Static Maps API. See MAPS_ENABLED.
-    if (!MAPS_ENABLED) {
+    // Maps disabled (e.g. local dev) → placeholder instead of a Google call.
+    if (!MAPS_ENABLED || !src) {
         return (
             <div
                 className={cn(
@@ -83,22 +103,14 @@ export default function LocationStaticMap({
     }
 
     return (
-        <img
-            src={staticMapUrl({
-                lat: parsed.lat,
-                lng: parsed.lng,
-                width,
-                height,
-                theme: resolvedAppearance === 'dark' ? 'dark' : 'light',
-            })}
+        <StaticMapImage
+            src={src}
             alt={`Mapa de ${label.toLowerCase()}`}
             width={width}
             height={height}
-            loading="lazy"
-            className={cn(
-                'h-auto w-full rounded-md border object-cover',
-                className,
-            )}
+            className={className}
         />
     );
 }
+
+export default memo(LocationStaticMapImpl);
