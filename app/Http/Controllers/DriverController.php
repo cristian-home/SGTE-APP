@@ -16,6 +16,7 @@ use App\Models\Service;
 use App\Models\SeveranceFund;
 use App\Models\User;
 use App\Notifications\DriverAccountInvitationNotification;
+use App\Support\FacetCounts;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -51,23 +52,7 @@ class DriverController extends Controller
                 'documentType:id,code',
                 'user:id,name,email',
             ])
-            ->allowedFilters([
-                AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
-                'identification_number',
-                'first_name',
-                'first_lastname',
-                AllowedFilter::exact('municipality_id'),
-                AllowedFilter::exact('license_category'),
-                AllowedFilter::exact('active'),
-                AllowedFilter::exact('has_social_security'),
-                AllowedFilter::callback('license_status', function (Builder $query, $value) {
-                    // Faceted filter UI is multi-select but license_status is
-                    // semantically single-select. Honor the first comma-
-                    // separated value (mirrors VehicleController docs_status).
-                    $first = is_array($value) ? ($value[0] ?? '') : explode(',', (string) $value)[0];
-                    $this->applyLicenseStatusFilter($query, $first);
-                }),
-            ])
+            ->allowedFilters($this->allowedFilters())
             ->allowedSorts(['first_name', 'first_lastname', 'municipality_id', 'license_due_at', 'active'])
             ->defaultSort('first_lastname')
             ->paginate($request->perPage())
@@ -80,6 +65,12 @@ class DriverController extends Controller
         return Inertia::render('drivers/index', [
             'drivers' => $drivers,
             'municipalities' => $this->municipalitiesPayload(),
+            'facetCounts' => FacetCounts::for(
+                Driver::class,
+                $this->allowedFilters(),
+                $request,
+                ['municipality_id' => 'municipality_id'],
+            ),
             'documentTypes' => DocumentType::orderBy('code')->get(['id', 'code', 'name']),
             'eps' => Eps::orderBy('name')->get(['id', 'code', 'name']),
             'pensionFunds' => PensionFund::orderBy('name')->get(['id', 'code', 'name']),
@@ -122,6 +113,32 @@ class DriverController extends Controller
      *
      * @return \Illuminate\Database\Eloquent\Collection<int, Municipality>
      */
+    /**
+     * QueryBuilder filters shared by index() and the facet-count helper.
+     *
+     * @return array<int, mixed>
+     */
+    protected function allowedFilters(): array
+    {
+        return [
+            AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
+            'identification_number',
+            'first_name',
+            'first_lastname',
+            AllowedFilter::exact('municipality_id'),
+            AllowedFilter::exact('license_category'),
+            AllowedFilter::exact('active'),
+            AllowedFilter::exact('has_social_security'),
+            AllowedFilter::callback('license_status', function (Builder $query, $value) {
+                // Faceted filter UI is multi-select but license_status is
+                // semantically single-select. Honor the first comma-
+                // separated value (mirrors VehicleController docs_status).
+                $first = is_array($value) ? ($value[0] ?? '') : explode(',', (string) $value)[0];
+                $this->applyLicenseStatusFilter($query, $first);
+            }),
+        ];
+    }
+
     private function municipalitiesPayload(): \Illuminate\Database\Eloquent\Collection
     {
         return Municipality::query()

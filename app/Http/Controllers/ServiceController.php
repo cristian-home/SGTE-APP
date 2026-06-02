@@ -16,6 +16,7 @@ use App\Models\Service;
 use App\Models\ThirdParty;
 use App\Models\Vehicle;
 use App\Notifications\ServiceAssignedNotification;
+use App\Support\FacetCounts;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -36,25 +37,7 @@ class ServiceController extends Controller
         $services = QueryBuilder::for(Service::class)
             ->with(['contract', 'vehicle', 'driver'])
             ->allowedIncludes(['invoice'])
-            ->allowedFilters([
-                AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
-                AllowedFilter::partial('service_number'),
-                AllowedFilter::callback('service_date', fn (Builder $query, $value) => $query->whereDate('service_date_local', $value)),
-                AllowedFilter::exact('origin_municipality_id'),
-                AllowedFilter::exact('destination_municipality_id'),
-                AllowedFilter::exact('service_status'),
-                AllowedFilter::exact('payment_method'),
-                AllowedFilter::exact('contract_id'),
-                AllowedFilter::exact('driver_id'),
-                AllowedFilter::exact('vehicle_id'),
-                AllowedFilter::callback('date_from', fn (Builder $query, $value) => $query->whereDate('service_date_local', '>=', $value)),
-                AllowedFilter::callback('date_to', fn (Builder $query, $value) => $query->whereDate('service_date_local', '<=', $value)),
-                ...$this->dateRangeFilters('planned_start', 'planned_start_at'),
-                ...$this->dateRangeFilters('planned_end', 'planned_end_at'),
-                ...$this->dateRangeFilters('actual_start', 'actual_start_at'),
-                ...$this->dateRangeFilters('actual_end', 'actual_end_at'),
-                ...$this->dateRangeFilters('created', 'created_at'),
-            ])
+            ->allowedFilters($this->allowedFilters())
             ->allowedSorts([
                 'service_number',
                 'service_date_local',
@@ -78,8 +61,48 @@ class ServiceController extends Controller
 
         return Inertia::render('services/index', [
             'services' => $services,
+            'facetCounts' => FacetCounts::for(
+                Service::class,
+                $this->allowedFilters(),
+                $request,
+                [
+                    'contract_id' => 'contract_id',
+                    'driver_id' => 'driver_id',
+                    'vehicle_id' => 'vehicle_id',
+                    'origin_municipality_id' => 'origin_municipality_id',
+                    'destination_municipality_id' => 'destination_municipality_id',
+                ],
+            ),
             ...$this->indexFilterOptions(),
         ]);
+    }
+
+    /**
+     * QueryBuilder filters shared by index() and the facet-count helper.
+     *
+     * @return array<int, mixed>
+     */
+    protected function allowedFilters(): array
+    {
+        return [
+            AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
+            AllowedFilter::partial('service_number'),
+            AllowedFilter::callback('service_date', fn (Builder $query, $value) => $query->whereDate('service_date_local', $value)),
+            AllowedFilter::exact('origin_municipality_id'),
+            AllowedFilter::exact('destination_municipality_id'),
+            AllowedFilter::exact('service_status'),
+            AllowedFilter::exact('payment_method'),
+            AllowedFilter::exact('contract_id'),
+            AllowedFilter::exact('driver_id'),
+            AllowedFilter::exact('vehicle_id'),
+            AllowedFilter::callback('date_from', fn (Builder $query, $value) => $query->whereDate('service_date_local', '>=', $value)),
+            AllowedFilter::callback('date_to', fn (Builder $query, $value) => $query->whereDate('service_date_local', '<=', $value)),
+            ...$this->dateRangeFilters('planned_start', 'planned_start_at'),
+            ...$this->dateRangeFilters('planned_end', 'planned_end_at'),
+            ...$this->dateRangeFilters('actual_start', 'actual_start_at'),
+            ...$this->dateRangeFilters('actual_end', 'actual_end_at'),
+            ...$this->dateRangeFilters('created', 'created_at'),
+        ];
     }
 
     /**

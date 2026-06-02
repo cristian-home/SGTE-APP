@@ -10,6 +10,7 @@ use App\Models\DocumentType;
 use App\Models\Municipality;
 use App\Models\ThirdParty;
 use App\Models\Vehicle;
+use App\Support\FacetCounts;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -32,18 +33,7 @@ class ThirdPartyController extends Controller
                 'municipality.department:id,name',
                 'documentType:id,code,name',
             ])
-            ->allowedFilters([
-                AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
-                'identification_number',
-                AllowedFilter::exact('is_natural_person'),
-                'first_name',
-                'first_lastname',
-                'company_name',
-                AllowedFilter::exact('municipality_id'),
-                AllowedFilter::exact('is_customer'),
-                AllowedFilter::exact('is_provider'),
-                AllowedFilter::exact('active'),
-            ])
+            ->allowedFilters($this->allowedFilters())
             ->allowedSorts(['first_name', 'first_lastname', 'company_name', 'municipality_id', 'active'])
             ->defaultSort('id')
             ->paginate($request->perPage())
@@ -57,7 +47,34 @@ class ThirdPartyController extends Controller
             'thirdParties' => $thirdParties,
             'municipalities' => $this->municipalitiesPayload(),
             'documentTypes' => DocumentType::orderBy('code')->get(['id', 'code', 'name']),
+            'facetCounts' => FacetCounts::for(
+                ThirdParty::class,
+                $this->allowedFilters(),
+                $request,
+                ['municipality_id' => 'municipality_id'],
+            ),
         ]);
+    }
+
+    /**
+     * QueryBuilder filters shared by index() and the facet-count helper.
+     *
+     * @return array<int, mixed>
+     */
+    protected function allowedFilters(): array
+    {
+        return [
+            AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
+            'identification_number',
+            AllowedFilter::exact('is_natural_person'),
+            'first_name',
+            'first_lastname',
+            'company_name',
+            AllowedFilter::exact('municipality_id'),
+            AllowedFilter::exact('is_customer'),
+            AllowedFilter::exact('is_provider'),
+            AllowedFilter::exact('active'),
+        ];
     }
 
     /**

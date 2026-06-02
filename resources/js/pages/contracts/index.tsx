@@ -13,6 +13,7 @@ import { type DocumentTypeOption } from '@/components/third-parties/third-party-
 import { Button } from '@/components/ui/button';
 import { useServerTable } from '@/hooks/use-server-table';
 import AppLayout from '@/layouts/app-layout';
+import { type FacetCounts, withCounts } from '@/lib/facet-filter';
 import contracts from '@/routes/contracts';
 
 import { columns, type ContractRow, type ContractTableMeta } from './columns';
@@ -72,11 +73,13 @@ export default function ContractsIndex({
     thirdParties,
     documentTypes = [],
     municipalities = [],
+    facetCounts,
 }: {
     contracts: PaginatedData<ContractRow>;
     thirdParties: ThirdPartyOption[];
     documentTypes?: DocumentTypeOption[];
     municipalities?: MunicipalityOption[];
+    facetCounts: FacetCounts;
 }) {
     'use no memo';
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -107,19 +110,23 @@ export default function ContractsIndex({
             {
                 name: 'third_party_id',
                 label: 'Cliente',
-                options: thirdParties
-                    .filter((tp) => tp.is_customer)
-                    .map((tp) => ({
-                        value: String(tp.id),
-                        label: tp.is_natural_person
-                            ? [tp.first_name, tp.first_lastname]
-                                  .filter(Boolean)
-                                  .join(' ') || '—'
-                            : (tp.company_name ?? '—'),
-                    })),
+                options: withCounts(
+                    thirdParties
+                        .filter((tp) => tp.is_customer)
+                        .map((tp) => ({
+                            value: String(tp.id),
+                            label: tp.is_natural_person
+                                ? [tp.first_name, tp.first_lastname]
+                                      .filter(Boolean)
+                                      .join(' ') || '—'
+                                : (tp.company_name ?? '—'),
+                        })),
+                    facetCounts.third_party_id,
+                ),
+                sectioned: true,
             },
         ],
-        [thirdParties],
+        [thirdParties, facetCounts],
     );
 
     const {
