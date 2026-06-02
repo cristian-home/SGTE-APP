@@ -142,7 +142,9 @@ export default function VehicleTypeDialog({
                                 value={data.name}
                                 maxLength={60}
                                 aria-invalid={!!errors.name}
-                                onChange={(e) => setData('name', e.target.value)}
+                                onChange={(e) =>
+                                    setData('name', e.target.value)
+                                }
                                 placeholder="Microbús"
                             />
                             <FieldFooter error={errors.name} />
@@ -167,9 +169,12 @@ export default function VehicleTypeDialog({
                                         }
                                         className={cn(
                                             'font-mono',
-                                            !selected && 'text-muted-foreground',
+                                            !selected &&
+                                                'text-muted-foreground',
                                         )}
-                                        onClick={() => toggleCategory(cat.value)}
+                                        onClick={() =>
+                                            toggleCategory(cat.value)
+                                        }
                                         aria-pressed={selected}
                                     >
                                         {cat.label}
@@ -180,7 +185,9 @@ export default function VehicleTypeDialog({
                         <p className="text-xs text-muted-foreground">
                             Categorías de conductor que pueden operar este tipo.
                         </p>
-                        <FieldFooter error={errors.allowed_license_categories} />
+                        <FieldFooter
+                            error={errors.allowed_license_categories}
+                        />
                     </div>
 
                     <div className="grid gap-4 sm:grid-cols-2">
