@@ -11,8 +11,8 @@ import VehicleDialog, {
 import { vehicleDocsAggregateStatus } from '@/components/vehicles/vehicle-document-pills';
 import { type VehicleTypeOption } from '@/components/vehicles/vehicle-form';
 import { useServerTable } from '@/hooks/use-server-table';
-import { type FacetCounts, withCounts } from '@/lib/facet-filter';
 import AppLayout from '@/layouts/app-layout';
+import { type FacetCounts, withCounts } from '@/lib/facet-filter';
 import vehicles from '@/routes/vehicles';
 
 import { columns, type VehicleTableMeta } from './columns';

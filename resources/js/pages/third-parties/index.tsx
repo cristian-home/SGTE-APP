@@ -11,6 +11,7 @@ import { type DocumentTypeOption } from '@/components/third-parties/third-party-
 import { Button } from '@/components/ui/button';
 import { useServerTable } from '@/hooks/use-server-table';
 import AppLayout from '@/layouts/app-layout';
+import { type FacetCounts, withCounts } from '@/lib/facet-filter';
 import thirdParties from '@/routes/third-parties';
 
 import { columns, type ThirdPartyTableMeta } from './columns';
@@ -68,10 +69,12 @@ export default function ThirdPartiesIndex({
     thirdParties: paginatedThirdParties,
     municipalities,
     documentTypes,
+    facetCounts,
 }: {
     thirdParties: PaginatedData<ThirdParty>;
     municipalities: MunicipalityOption[];
     documentTypes: DocumentTypeOption[];
+    facetCounts: FacetCounts;
 }) {
     'use no memo';
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -102,16 +105,20 @@ export default function ThirdPartiesIndex({
             {
                 name: 'municipality_id',
                 label: 'Ciudad',
-                options: municipalities.map((m) => ({
-                    value: String(m.id),
-                    label: m.department
-                        ? `${m.name} (${m.department.name})`
-                        : m.name,
-                })),
+                options: withCounts(
+                    municipalities.map((m) => ({
+                        value: String(m.id),
+                        label: m.department
+                            ? `${m.name} (${m.department.name})`
+                            : m.name,
+                    })),
+                    facetCounts.municipality_id,
+                ),
                 capitalizeOptions: true,
+                sectioned: true,
             },
         ],
-        [municipalities],
+        [municipalities, facetCounts],
     );
 
     const {

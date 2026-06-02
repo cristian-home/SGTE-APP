@@ -11,6 +11,7 @@ use App\Models\Municipality;
 use App\Models\Service;
 use App\Models\ServiceIncident;
 use App\Models\ThirdParty;
+use App\Support\FacetCounts;
 use App\Support\Tz;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -42,18 +43,7 @@ class ContractController extends Controller
                 'thirdParty:id,document_type_id,identification_number,is_natural_person,first_name,first_lastname,company_name,is_customer,is_provider',
                 'thirdParty.documentType:id,code,name',
             ])
-            ->allowedFilters([
-                AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
-                'contract_number',
-                AllowedFilter::exact('contract_object'),
-                AllowedFilter::exact('is_generic'),
-                AllowedFilter::exact('active'),
-                AllowedFilter::exact('third_party_id'),
-                AllowedFilter::callback('contract_status', function (Builder $query, $value) {
-                    $first = is_array($value) ? ($value[0] ?? '') : explode(',', (string) $value)[0];
-                    $this->applyContractStatusFilter($query, $first);
-                }),
-            ])
+            ->allowedFilters($this->allowedFilters())
             ->allowedSorts(['contract_number', 'start_at', 'end_at', 'created_at'])
             ->defaultSort('-created_at')
             ->paginate($request->perPage())
@@ -65,8 +55,35 @@ class ContractController extends Controller
 
         return Inertia::render('contracts/index', [
             'contracts' => $contracts,
+            'facetCounts' => FacetCounts::for(
+                Contract::class,
+                $this->allowedFilters(),
+                $request,
+                ['third_party_id' => 'third_party_id'],
+            ),
             ...$this->modalReferenceData(),
         ]);
+    }
+
+    /**
+     * QueryBuilder filters shared by index() and the facet-count helper.
+     *
+     * @return array<int, mixed>
+     */
+    protected function allowedFilters(): array
+    {
+        return [
+            AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
+            'contract_number',
+            AllowedFilter::exact('contract_object'),
+            AllowedFilter::exact('is_generic'),
+            AllowedFilter::exact('active'),
+            AllowedFilter::exact('third_party_id'),
+            AllowedFilter::callback('contract_status', function (Builder $query, $value) {
+                $first = is_array($value) ? ($value[0] ?? '') : explode(',', (string) $value)[0];
+                $this->applyContractStatusFilter($query, $first);
+            }),
+        ];
     }
 
     /**

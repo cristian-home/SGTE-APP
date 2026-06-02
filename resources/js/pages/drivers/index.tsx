@@ -11,6 +11,7 @@ import { type MunicipalityOption } from '@/components/municipality-combobox';
 import { Button } from '@/components/ui/button';
 import { useServerTable } from '@/hooks/use-server-table';
 import AppLayout from '@/layouts/app-layout';
+import { type FacetCounts, withCounts } from '@/lib/facet-filter';
 import drivers from '@/routes/drivers';
 
 import { columns, type DriverTableMeta } from './columns';
@@ -82,6 +83,7 @@ export default function DriversIndex({
     eps,
     pensionFunds,
     severanceFunds,
+    facetCounts,
 }: {
     drivers: PaginatedData<Driver>;
     municipalities: MunicipalityOption[];
@@ -89,6 +91,7 @@ export default function DriversIndex({
     eps: CatalogOption[];
     pensionFunds: CatalogOption[];
     severanceFunds: CatalogOption[];
+    facetCounts: FacetCounts;
 }) {
     'use no memo';
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -120,16 +123,20 @@ export default function DriversIndex({
             {
                 name: 'municipality_id',
                 label: 'Ciudad',
-                options: municipalities.map((m) => ({
-                    value: String(m.id),
-                    label: m.department
-                        ? `${m.name} (${m.department.name})`
-                        : m.name,
-                })),
+                options: withCounts(
+                    municipalities.map((m) => ({
+                        value: String(m.id),
+                        label: m.department
+                            ? `${m.name} (${m.department.name})`
+                            : m.name,
+                    })),
+                    facetCounts.municipality_id,
+                ),
                 capitalizeOptions: true,
+                sectioned: true,
             },
         ],
-        [municipalities],
+        [municipalities, facetCounts],
     );
 
     const {

@@ -12,6 +12,7 @@ use App\Models\Invoice;
 use App\Models\Service;
 use App\Models\ThirdParty;
 use App\Services\InvoiceTotalCalculator;
+use App\Support\FacetCounts;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -40,12 +41,7 @@ class InvoiceController extends Controller
             ])
             // services_count drives the locked-total state of the edit modal.
             ->withCount('services')
-            ->allowedFilters([
-                AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
-                'invoice_number',
-                AllowedFilter::exact('payment_status'),
-                AllowedFilter::exact('third_party_id'),
-            ])
+            ->allowedFilters($this->allowedFilters())
             ->allowedSorts(['invoice_number', 'issued_at', 'total_value', 'payment_status'])
             ->defaultSort('-issued_at')
             ->paginate($request->perPage())
@@ -59,7 +55,28 @@ class InvoiceController extends Controller
             'invoices' => $invoices,
             'thirdParties' => $this->customerOptions(),
             'nextInvoiceNumberPreview' => Invoice::nextInvoiceNumber(),
+            'facetCounts' => FacetCounts::for(
+                Invoice::class,
+                $this->allowedFilters(),
+                $request,
+                ['third_party_id' => 'third_party_id'],
+            ),
         ]);
+    }
+
+    /**
+     * QueryBuilder filters shared by index() and the facet-count helper.
+     *
+     * @return array<int, mixed>
+     */
+    protected function allowedFilters(): array
+    {
+        return [
+            AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
+            'invoice_number',
+            AllowedFilter::exact('payment_status'),
+            AllowedFilter::exact('third_party_id'),
+        ];
     }
 
     /**
