@@ -15,8 +15,10 @@ import {
 } from '@/components/ui/table';
 import VehicleDialog from '@/components/vehicles/vehicle-dialog';
 import { VehicleDocumentPills } from '@/components/vehicles/vehicle-document-pills';
-import { type ThirdPartyOption } from '@/components/vehicles/vehicle-form';
-import { type VehicleType, VehicleTypeLabel } from '@/enums/VehicleType';
+import {
+    type ThirdPartyOption,
+    type VehicleTypeOption,
+} from '@/components/vehicles/vehicle-form';
 import AppLayout from '@/layouts/app-layout';
 import services from '@/routes/services';
 import vehicles from '@/routes/vehicles';
@@ -37,7 +39,7 @@ type ShowVehicle = Pick<
     | 'brand'
     | 'line'
     | 'model_year'
-    | 'type'
+    | 'vehicle_type_id'
     | 'engine_number'
     | 'chassis_number'
     | 'capacity'
@@ -53,6 +55,7 @@ type ShowVehicle = Pick<
     | 'operation_card_due_date'
     | 'status'
 > & {
+    vehicle_type?: { id: number; code: string; name: string } | null;
     municipality?: {
         id: number;
         name: string;
@@ -198,12 +201,14 @@ export default function VehiclesShow({
     recentLocations,
     municipalities,
     thirdParties,
+    vehicleTypes,
 }: {
     vehicle: ShowVehicle;
     recentServices: RecentServiceRow[];
     recentLocations: RecentLocationRow[];
     municipalities: MunicipalityOption[];
     thirdParties: ThirdPartyOption[];
+    vehicleTypes: VehicleTypeOption[];
 }) {
     const page = usePage<{
         auth?: { featureFlags?: { fuec?: boolean; gps?: boolean } };
@@ -259,6 +264,7 @@ export default function VehiclesShow({
                     vehicle={vehicle}
                     municipalities={municipalities}
                     thirdParties={thirdParties}
+                    vehicleTypes={vehicleTypes}
                 />
 
                 {/* Información General */}
@@ -272,9 +278,7 @@ export default function VehiclesShow({
                             <Field label="Línea">{vehicle.line}</Field>
                             <Field label="Modelo">{vehicle.model_year}</Field>
                             <Field label="Tipo">
-                                {VehicleTypeLabel[
-                                    vehicle.type as VehicleType
-                                ] ?? vehicle.type}
+                                {vehicle.vehicle_type?.name ?? '—'}
                             </Field>
                             <Field label="Capacidad">
                                 {vehicle.capacity} pasajeros

@@ -87,7 +87,8 @@ class GanttController extends Controller
             ->whereDate('service_date_local', $date)
             ->whereIn('vehicle_id', $vehicles->pluck('id'))
             ->with([
-                'vehicle:id,plate,type,is_third_party,timezone,soat_due_at,rtm_due_at,operation_card_due_at',
+                'vehicle:id,plate,vehicle_type_id,is_third_party,timezone,soat_due_at,rtm_due_at,operation_card_due_at',
+                'vehicle.vehicleType:id,allowed_license_categories',
                 'driver:id,first_name,first_lastname,license_category,timezone,license_due_at,has_social_security',
                 'contract:id,contract_number,third_party_id',
                 'contract.thirdParty:id,company_name,first_name,first_lastname,is_natural_person',

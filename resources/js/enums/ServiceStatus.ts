@@ -9,6 +9,6 @@ export const ServiceStatus = {
 export type ServiceStatus = (typeof ServiceStatus)[keyof typeof ServiceStatus];
 
 export const ServiceStatusLabel: Record<ServiceStatus, string> = {
-    open: 'Abierto',
-    closed: 'Cerrado',
+    'open': 'Abierto',
+    'closed': 'Cerrado',
 };

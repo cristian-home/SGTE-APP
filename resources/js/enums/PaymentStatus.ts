@@ -10,7 +10,7 @@ export const PaymentStatus = {
 export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus];
 
 export const PaymentStatusLabel: Record<PaymentStatus, string> = {
-    pending: 'Pendiente',
-    paid: 'Pagado',
-    overdue: 'Vencido',
+    'pending': 'Pendiente',
+    'paid': 'Pagado',
+    'overdue': 'Vencido',
 };

@@ -16,7 +16,6 @@ test('enum:typescript generates typescript files for all string-backed enums', f
 
     expect(File::exists($this->outputPath.'/Permission.ts'))->toBeTrue()
         ->and(File::exists($this->outputPath.'/Role.ts'))->toBeTrue()
-        ->and(File::exists($this->outputPath.'/VehicleType.ts'))->toBeTrue()
         ->and(File::exists($this->outputPath.'/VehicleStatus.ts'))->toBeTrue()
         ->and(File::exists($this->outputPath.'/ContractObject.ts'))->toBeTrue()
         ->and(File::exists($this->outputPath.'/ServiceStatus.ts'))->toBeTrue()

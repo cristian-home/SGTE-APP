@@ -30,7 +30,13 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const MAX_BYTES = 20 * 1024 * 1024;
 
-export default function ImportsCreate({ types }: { types: TypeOption[] }) {
+export default function ImportsCreate({
+    types,
+    vehicleTypeCodes,
+}: {
+    types: TypeOption[];
+    vehicleTypeCodes: string[];
+}) {
     const [type, setType] = useState<string>('');
     const [file, setFile] = useState<File | null>(null);
     const [clientError, setClientError] = useState<string | null>(null);
@@ -127,6 +133,16 @@ export default function ImportsCreate({ types }: { types: TypeOption[] }) {
                                                 {errors.type}
                                             </p>
                                         )}
+                                        {type === 'vehicles' &&
+                                            vehicleTypeCodes.length > 0 && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    Tipos válidos para la
+                                                    columna{' '}
+                                                    <code>type</code>:{' '}
+                                                    {vehicleTypeCodes.join(', ')}
+                                                    .
+                                                </p>
+                                            )}
                                     </div>
 
                                     <div className="flex flex-col gap-2">

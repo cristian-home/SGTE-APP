@@ -9,6 +9,7 @@ import VehicleDialog, {
     type EditableVehicle,
 } from '@/components/vehicles/vehicle-dialog';
 import { vehicleDocsAggregateStatus } from '@/components/vehicles/vehicle-document-pills';
+import { type VehicleTypeOption } from '@/components/vehicles/vehicle-form';
 import { useServerTable } from '@/hooks/use-server-table';
 import AppLayout from '@/layouts/app-layout';
 import vehicles from '@/routes/vehicles';
@@ -86,11 +87,13 @@ export default function VehiclesIndex({
     vehicles: paginatedVehicles,
     municipalities,
     thirdParties,
+    vehicleTypes,
     suggestedInternalCode,
 }: {
     vehicles: PaginatedData<Vehicle>;
     municipalities: MunicipalityOption[];
     thirdParties: ThirdPartyOption[];
+    vehicleTypes: VehicleTypeOption[];
     suggestedInternalCode: string;
 }) {
     'use no memo';
@@ -189,6 +192,7 @@ export default function VehiclesIndex({
                 vehicle={selectedVehicle}
                 municipalities={municipalities}
                 thirdParties={thirdParties}
+                vehicleTypes={vehicleTypes}
                 suggestedInternalCode={suggestedInternalCode}
             />
         </AppLayout>

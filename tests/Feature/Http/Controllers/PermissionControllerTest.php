@@ -18,7 +18,7 @@ test('admin can view permissions reference', function (): void {
     $response->assertInertia(
         fn (\Inertia\Testing\AssertableInertia $page) => $page
             ->component('permissions/index')
-            ->has('groups', 18)
+            ->has('groups', 19)
     );
 });
 

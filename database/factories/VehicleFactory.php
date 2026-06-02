@@ -3,9 +3,9 @@
 namespace Database\Factories;
 
 use App\Enums\VehicleStatus;
-use App\Enums\VehicleType;
 use App\Models\Municipality;
 use App\Models\ThirdParty;
+use App\Models\VehicleType;
 use App\Support\Tz;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -25,7 +25,8 @@ class VehicleFactory extends Factory
             'brand' => fake()->randomElement(['Chevrolet', 'Toyota', 'Hyundai', 'Kia', 'Nissan', 'Mercedes-Benz']),
             'line' => fake()->randomElement(['NKR', 'NPR', 'Coaster', 'County', 'Pregio', 'Sprinter', 'Dyna']),
             'model_year' => fake()->numberBetween(2015, 2026),
-            'type' => fake()->randomElement(VehicleType::cases()),
+            'vehicle_type_id' => VehicleType::query()->inRandomOrder()->value('id')
+                ?? VehicleType::factory(),
             'engine_number' => fake()->bothify('??#####??##'),
             'chassis_number' => fake()->bothify('?????????????????'),
             'capacity' => fake()->numberBetween(4, 40),

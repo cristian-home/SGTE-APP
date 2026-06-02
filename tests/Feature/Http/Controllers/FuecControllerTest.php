@@ -4,7 +4,6 @@ use App\Enums\FuecStatus;
 use App\Enums\LicenseCategory;
 use App\Enums\Role;
 use App\Enums\ServiceStatus;
-use App\Enums\VehicleType;
 use App\Models\Contract;
 use App\Models\Driver;
 use App\Models\Fuec;
@@ -37,7 +36,7 @@ function fuecReadyService(): Service
     ]);
     $vehicle = Vehicle::factory()->create([
         'is_third_party' => false,
-        'type' => VehicleType::Buseta,
+        'vehicle_type_id' => vtid('buseta'),
         'soat_due_date' => Carbon::now()->addYear(),
         'rtm_due_date' => Carbon::now()->addYear(),
         'operation_card_due_date' => Carbon::now()->addYear(),

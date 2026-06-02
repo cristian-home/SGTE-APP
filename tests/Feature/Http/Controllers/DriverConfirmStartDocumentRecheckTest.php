@@ -4,7 +4,6 @@ namespace Tests\Feature\Http\Controllers;
 
 use App\Enums\LicenseCategory;
 use App\Enums\Role;
-use App\Enums\VehicleType;
 use App\Models\Driver;
 use App\Models\Service;
 use App\Models\User;
@@ -38,7 +37,7 @@ beforeEach(function (): void {
 function buildValidFleet(array $vehicleOverrides = [], array $driverOverrides = []): array
 {
     $vehicle = Vehicle::factory()->create([
-        'type' => VehicleType::Van,
+        'vehicle_type_id' => vtid('van'),
         'soat_due_date' => '2030-12-31',
         'rtm_due_date' => '2030-12-31',
         'operation_card_due_date' => '2030-12-31',
@@ -148,7 +147,7 @@ test('confirmStart 422s when driver license expired before service_date (REQ-005
 test('confirmStart 422s when driver license category is incompatible with vehicle type (REQ-005 branch)', function (): void {
     // Bus requires C2 or C3; use C1 to trigger incompatibility.
     [$vehicle, $driver] = buildValidFleet(
-        ['type' => VehicleType::Bus],
+        ['vehicle_type_id' => vtid('bus')],
         ['license_category' => LicenseCategory::C1],
     );
     $driver->user_id = $this->driverUser->id;

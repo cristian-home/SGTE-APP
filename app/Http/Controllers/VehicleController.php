@@ -9,6 +9,7 @@ use App\Models\Municipality;
 use App\Models\Service;
 use App\Models\ThirdParty;
 use App\Models\Vehicle;
+use App\Models\VehicleType;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -35,6 +36,7 @@ class VehicleController extends Controller
 
         $vehicles = QueryBuilder::for(Vehicle::class)
             ->with([
+                'vehicleType:id,code,name',
                 'thirdParty:id,company_name,first_name,first_lastname,is_natural_person',
                 'municipality:id,name,department_id',
                 'municipality.department:id,name',
@@ -44,7 +46,7 @@ class VehicleController extends Controller
                 'internal_code',
                 'plate',
                 'brand',
-                AllowedFilter::exact('type'),
+                AllowedFilter::exact('vehicle_type_id'),
                 AllowedFilter::exact('municipality_id'),
                 AllowedFilter::exact('is_third_party'),
                 AllowedFilter::exact('status'),
@@ -92,6 +94,9 @@ class VehicleController extends Controller
                 ->with('department:id,name')
                 ->orderBy('name')
                 ->get(['id', 'name', 'code', 'department_id']),
+            'vehicleTypes' => VehicleType::query()
+                ->activeOrdered()
+                ->get(['id', 'code', 'name']),
         ];
     }
 
@@ -177,6 +182,7 @@ class VehicleController extends Controller
         Gate::authorize(Permission::VIEW_VEHICLES->value);
 
         $vehicle->load([
+            'vehicleType:id,code,name',
             'municipality:id,name,department_id',
             'municipality.department:id,name',
             'thirdParty:id,company_name,first_name,first_lastname,is_natural_person,identification_number',

@@ -8,12 +8,11 @@ export const DataImportType = {
     Vehicles: 'vehicles',
 } as const;
 
-export type DataImportType =
-    (typeof DataImportType)[keyof typeof DataImportType];
+export type DataImportType = (typeof DataImportType)[keyof typeof DataImportType];
 
 export const DataImportTypeLabel: Record<DataImportType, string> = {
-    users: 'Usuarios',
-    third_parties: 'Terceros',
-    drivers: 'Conductores',
-    vehicles: 'Vehículos',
+    'users': 'Usuarios',
+    'third_parties': 'Terceros',
+    'drivers': 'Conductores',
+    'vehicles': 'Vehículos',
 };

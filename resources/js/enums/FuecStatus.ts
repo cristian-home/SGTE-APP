@@ -9,6 +9,6 @@ export const FuecStatus = {
 export type FuecStatus = (typeof FuecStatus)[keyof typeof FuecStatus];
 
 export const FuecStatusLabel: Record<FuecStatus, string> = {
-    active: 'Activo',
-    cancelled: 'Cancelado',
+    'active': 'Activo',
+    'cancelled': 'Cancelado',
 };

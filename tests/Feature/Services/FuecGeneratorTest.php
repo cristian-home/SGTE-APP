@@ -4,7 +4,6 @@ use App\Enums\FuecStatus;
 use App\Enums\LicenseCategory;
 use App\Enums\Role;
 use App\Enums\ServiceStatus;
-use App\Enums\VehicleType;
 use App\Models\Contract;
 use App\Models\Driver;
 use App\Models\Fuec;
@@ -43,7 +42,7 @@ beforeEach(function (): void {
 
     $this->vehicle = Vehicle::factory()->create([
         'is_third_party' => false,
-        'type' => VehicleType::Buseta,
+        'vehicle_type_id' => vtid('buseta'),
         'soat_due_date' => Carbon::now()->addYear(),
         'rtm_due_date' => Carbon::now()->addYear(),
         'operation_card_due_date' => Carbon::now()->addYear(),
@@ -151,7 +150,7 @@ test('expired driver license is rejected', function (): void {
 
 test('incompatible license category is rejected', function (): void {
     // Bus requires C2/C3; set the driver to C1 to trigger the category mismatch.
-    $this->vehicle->update(['type' => VehicleType::Bus]);
+    $this->vehicle->update(['vehicle_type_id' => vtid('bus')]);
     $this->driver->update(['license_category' => LicenseCategory::C1]);
 
     expect(fn () => app(FuecGenerator::class)->generateFor($this->service, $this->admin))

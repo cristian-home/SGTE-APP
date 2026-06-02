@@ -241,7 +241,7 @@ test('store saves and redirects', function (): void {
         'brand' => $brand,
         'line' => $line,
         'model_year' => $model_year,
-        'type' => $type,
+        'vehicle_type_id' => vtid($type),
         'engine_number' => $engine_number,
         'chassis_number' => $chassis_number,
         'capacity' => $capacity,
@@ -261,7 +261,7 @@ test('store saves and redirects', function (): void {
         ->where('brand', $brand)
         ->where('line', $line)
         ->where('model_year', $model_year)
-        ->where('type', $type)
+        ->where('vehicle_type_id', vtid($type))
         ->where('engine_number', $engine_number)
         ->where('chassis_number', $chassis_number)
         ->where('capacity', $capacity)
@@ -383,7 +383,7 @@ test('update redirects', function (): void {
         'brand' => $brand,
         'line' => $line,
         'model_year' => $model_year,
-        'type' => $type,
+        'vehicle_type_id' => vtid($type),
         'engine_number' => $engine_number,
         'chassis_number' => $chassis_number,
         'capacity' => $capacity,
@@ -407,7 +407,7 @@ test('update redirects', function (): void {
     expect($brand)->toEqual($vehicle->brand);
     expect($line)->toEqual($vehicle->line);
     expect($model_year)->toEqual($vehicle->model_year);
-    expect($type)->toEqual($vehicle->type->value);
+    expect($type)->toEqual($vehicle->vehicleType->code);
     expect($engine_number)->toEqual($vehicle->engine_number);
     expect($chassis_number)->toEqual($vehicle->chassis_number);
     expect($capacity)->toEqual($vehicle->capacity);
@@ -438,7 +438,7 @@ test('store fails when is_third_party is true without third_party_id', function 
         'brand' => 'Chevrolet',
         'line' => 'NKR',
         'model_year' => 2024,
-        'type' => 'bus',
+        'vehicle_type_id' => vtid('bus'),
         'engine_number' => fake()->bothify('??#####??##'),
         'chassis_number' => fake()->bothify('?????????????????'),
         'capacity' => 20,
@@ -461,7 +461,7 @@ test('store succeeds when is_third_party is false without third_party_id', funct
         'brand' => 'Toyota',
         'line' => 'Coaster',
         'model_year' => 2024,
-        'type' => 'buseta',
+        'vehicle_type_id' => vtid('buseta'),
         'engine_number' => fake()->bothify('??#####??##'),
         'chassis_number' => fake()->bothify('?????????????????'),
         'capacity' => 15,
