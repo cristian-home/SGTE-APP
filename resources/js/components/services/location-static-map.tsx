@@ -1,13 +1,16 @@
 import { MapPin } from 'lucide-react';
-import { MapPreview } from '@/components/maps/map-preview';
+import { MapDisabledPlaceholder } from '@/components/map-disabled-placeholder';
+import { useAppearance } from '@/hooks/use-appearance';
+import { MAPS_ENABLED, staticMapUrl } from '@/lib/google-maps';
 import { cn } from '@/lib/utils';
 
 interface LocationStaticMapProps {
     /** "lat,lng" string, or null when the location is unknown. */
     coordinates: string | null;
-    /** "Origen" / "Destino" — used for the aria label and empty-state copy. */
+    /** "Origen" / "Destino" — used for the alt text and empty-state copy. */
     label: string;
     className?: string;
+    width?: number;
     height?: number;
 }
 
@@ -34,16 +37,18 @@ function parseCoordinates(
 }
 
 /**
- * Single-coordinate preview rendered locally with MapLibre + OpenStreetMap
- * (no Google Static Maps request). Neutral "Sin ubicación" placeholder when
- * the coordinates are absent or unparseable.
+ * Google Maps Static API preview for a single coordinate. Renders a
+ * neutral "Sin ubicación" placeholder (never a broken image) when the
+ * coordinates are absent or unparseable.
  */
 export default function LocationStaticMap({
     coordinates,
     label,
     className,
+    width = 300,
     height = 160,
 }: LocationStaticMapProps) {
+    const { resolvedAppearance } = useAppearance();
     const parsed = parseCoordinates(coordinates);
 
     if (!parsed) {
@@ -61,12 +66,39 @@ export default function LocationStaticMap({
         );
     }
 
+    // Maps disabled (e.g. local dev) → placeholder instead of an <img>
+    // that would hit Google's Static Maps API. See MAPS_ENABLED.
+    if (!MAPS_ENABLED) {
+        return (
+            <div
+                className={cn(
+                    'w-full overflow-hidden rounded-md border',
+                    className,
+                )}
+                style={{ height }}
+            >
+                <MapDisabledPlaceholder />
+            </div>
+        );
+    }
+
     return (
-        <MapPreview
-            points={[{ lat: parsed.lat, lng: parsed.lng }]}
+        <img
+            src={staticMapUrl({
+                lat: parsed.lat,
+                lng: parsed.lng,
+                width,
+                height,
+                theme: resolvedAppearance === 'dark' ? 'dark' : 'light',
+            })}
+            alt={`Mapa de ${label.toLowerCase()}`}
+            width={width}
             height={height}
-            className={className}
-            ariaLabel={`Mapa de ${label.toLowerCase()}`}
+            loading="lazy"
+            className={cn(
+                'h-auto w-full rounded-md border object-cover',
+                className,
+            )}
         />
     );
 }
