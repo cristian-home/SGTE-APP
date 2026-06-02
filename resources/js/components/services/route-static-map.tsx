@@ -1,6 +1,5 @@
 import { MapPin } from 'lucide-react';
-import { useAppearance } from '@/hooks/use-appearance';
-import { staticMapUrl, staticRouteMapUrl } from '@/lib/google-maps';
+import { MapPreview } from '@/components/maps/map-preview';
 import { cn } from '@/lib/utils';
 
 interface RouteStaticMapProps {
@@ -10,12 +9,11 @@ interface RouteStaticMapProps {
     destination: string | null;
     /**
      * Cached route as a GeoJSON LineString — array of [lng, lat] pairs
-     * (matches `Service.route_geometry`). When absent, the static image
-     * falls back to a straight line between the two markers.
+     * (matches `Service.route_geometry`). When absent, the preview falls
+     * back to a straight line between the two markers.
      */
     geometry?: number[][] | null;
     className?: string;
-    width?: number;
     height?: number;
 }
 
@@ -38,24 +36,21 @@ function parseCoordinates(
 }
 
 /**
- * Google Maps Static API preview that frames an entire trip: A/B
- * markers at origin and destination plus the polyline between them.
- * Renders a neutral placeholder when either coordinate is missing.
+ * Trip preview: A/B markers at origin/destination plus the route line.
+ * Rendered locally with MapLibre + OpenStreetMap (no Google Static Maps
+ * request) from the coordinates and the already-persisted route geometry.
+ * Neutral placeholder when both coordinates are missing.
  */
 export default function RouteStaticMap({
     origin,
     destination,
     geometry,
     className,
-    width = 600,
     height = 300,
 }: RouteStaticMapProps) {
-    const { resolvedAppearance } = useAppearance();
     const parsedOrigin = parseCoordinates(origin);
     const parsedDestination = parseCoordinates(destination);
 
-    // Both sides unknown → keep the neutral placeholder so the layout
-    // doesn't shift.
     if (!parsedOrigin && !parsedDestination) {
         return (
             <div
@@ -71,54 +66,49 @@ export default function RouteStaticMap({
         );
     }
 
-    // One side known → drop a single marker on a centered static map.
-    // Better than the empty placeholder when the operator has at least
-    // anchored one end of the trip.
+    // One side known → single marker.
     if (!parsedOrigin || !parsedDestination) {
         const point = parsedOrigin ?? parsedDestination!;
-        const altLabel = parsedOrigin
-            ? 'Mapa con el origen del servicio'
-            : 'Mapa con el destino del servicio';
         return (
-            <img
-                src={staticMapUrl({
-                    lat: point.lat,
-                    lng: point.lng,
-                    width,
-                    height,
-                    zoom: 13,
-                    theme: resolvedAppearance === 'dark' ? 'dark' : 'light',
-                })}
-                alt={altLabel}
-                width={width}
+            <MapPreview
+                points={[{ lat: point.lat, lng: point.lng }]}
                 height={height}
-                loading="lazy"
-                className={cn(
-                    'h-auto w-full rounded-md border object-cover',
-                    className,
-                )}
+                className={className}
+                ariaLabel={
+                    parsedOrigin
+                        ? 'Mapa con el origen del servicio'
+                        : 'Mapa con el destino del servicio'
+                }
             />
         );
     }
 
+    const line =
+        geometry && geometry.length >= 2
+            ? geometry
+            : [
+                  [parsedOrigin.lng, parsedOrigin.lat],
+                  [parsedDestination.lng, parsedDestination.lat],
+              ];
+
     return (
-        <img
-            src={staticRouteMapUrl({
-                origin: parsedOrigin,
-                destination: parsedDestination,
-                geometry,
-                theme: resolvedAppearance === 'dark' ? 'dark' : 'light',
-                width,
-                height,
-            })}
-            alt="Mapa de la ruta entre el origen y el destino"
-            width={width}
+        <MapPreview
+            points={[
+                {
+                    lat: parsedOrigin.lat,
+                    lng: parsedOrigin.lng,
+                    color: '#34a853',
+                },
+                {
+                    lat: parsedDestination.lat,
+                    lng: parsedDestination.lng,
+                    color: '#ea4335',
+                },
+            ]}
+            line={line}
             height={height}
-            loading="lazy"
-            className={cn(
-                'h-auto w-full rounded-md border object-cover',
-                className,
-            )}
+            className={className}
+            ariaLabel="Mapa de la ruta entre el origen y el destino"
         />
     );
 }

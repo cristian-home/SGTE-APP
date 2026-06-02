@@ -1,6 +1,45 @@
 import { dperf, dwarn } from '@/lib/debug-log';
 
 /**
+ * Geocoding results (placeId→coords, reverse lookups) may be cached up to
+ * 30 days per Google Maps Platform Terms 3.2.3(b). We cache successful
+ * lookups in localStorage so repeated views of the same address don't
+ * re-bill. (Autocomplete is NOT cached — it's already session-token billed.)
+ */
+const GEOCODE_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+function readGeocodeCache<T>(key: string): T | null {
+    try {
+        const raw = localStorage.getItem(key);
+        if (!raw) {
+            return null;
+        }
+        const parsed = JSON.parse(raw) as { v: T; exp: number };
+        if (typeof parsed?.exp !== 'number' || parsed.exp < Date.now()) {
+            localStorage.removeItem(key);
+            return null;
+        }
+        return parsed.v;
+    } catch {
+        return null;
+    }
+}
+
+function writeGeocodeCache<T>(key: string, value: T): void {
+    try {
+        localStorage.setItem(
+            key,
+            JSON.stringify({
+                v: value,
+                exp: Date.now() + GEOCODE_CACHE_TTL_MS,
+            }),
+        );
+    } catch {
+        // localStorage unavailable / quota exceeded — caching is best-effort.
+    }
+}
+
+/**
  * Typed helpers around the Google Maps JavaScript SDK for the SGTE
  * address pipeline. The SDK objects (`google.maps.places.*`,
  * `google.maps.Geocoder`) are loaded by `@vis.gl/react-google-maps`'s
@@ -160,6 +199,14 @@ export async function resolvePlace(
     placeId: string,
 ): Promise<ResolvedPlace | null> {
     const done = dperf('google-geocoding', 'resolvePlace', { placeId });
+
+    const cacheKey = `gmcache:resolve:${placeId}`;
+    const cached = readGeocodeCache<ResolvedPlace>(cacheKey);
+    if (cached) {
+        done({ outcome: 'cache' });
+        return cached;
+    }
+
     const geocoder = new google.maps.Geocoder();
 
     try {
@@ -176,7 +223,7 @@ export async function resolvePlace(
             locationType: result.geometry.location_type,
         });
 
-        return {
+        const resolved: ResolvedPlace = {
             lat: round7(location.lat()),
             lng: round7(location.lng()),
             placeId,
@@ -184,6 +231,8 @@ export async function resolvePlace(
             locationType: String(result.geometry.location_type),
             placeName: cityFromComponents(result.address_components),
         };
+        writeGeocodeCache(cacheKey, resolved);
+        return resolved;
     } catch (err) {
         dwarn('google-geocoding', 'resolvePlace error', {
             placeId,
@@ -203,6 +252,14 @@ export async function reverseGeocode(
     lng: number,
 ): Promise<ReverseGeocodeResult> {
     const done = dperf('google-geocoding', 'reverseGeocode', { lat, lng });
+
+    const cacheKey = `gmcache:reverse:${round7(lat)},${round7(lng)}`;
+    const cached = readGeocodeCache<ReverseGeocodeResult>(cacheKey);
+    if (cached) {
+        done({ outcome: 'cache' });
+        return cached;
+    }
+
     const geocoder = new google.maps.Geocoder();
 
     try {
@@ -216,10 +273,12 @@ export async function reverseGeocode(
         }
 
         done({ outcome: 'resolved' });
-        return {
+        const resolved: ReverseGeocodeResult = {
             displayText: result.formatted_address,
             cityName: cityFromComponents(result.address_components),
         };
+        writeGeocodeCache(cacheKey, resolved);
+        return resolved;
     } catch (err) {
         dwarn('google-geocoding', 'reverseGeocode error', {
             lat,
