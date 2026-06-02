@@ -36,6 +36,14 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Legacy-conversion migration: only relevant to databases that
+        // still have the old enum `type` column. Fresh installs already
+        // have vehicle_types (225419) + vehicles.vehicle_type_id
+        // (create_vehicles), so there is nothing to convert here.
+        if (! Schema::hasColumn('vehicles', 'type')) {
+            return;
+        }
+
         $isPgsql = DB::connection()->getDriverName() === 'pgsql';
 
         Schema::create('vehicle_types', function (Blueprint $table) {
