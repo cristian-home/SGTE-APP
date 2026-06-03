@@ -110,7 +110,7 @@ export type GanttContextProps = {
 
 const getsDaysIn = (range: Range) => {
     // For when range is daily
-    let fn = () => 1;
+    let fn: (date: Date) => number = () => 1;
 
     if (range === 'monthly' || range === 'quarterly') {
         fn = getDaysInMonth;

@@ -2,16 +2,16 @@ import { Head } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import dayStatuses from '@/routes/day-statuses';
 import { type BreadcrumbItem } from '@/types';
+import { type DayStatus } from '@/types/models';
 
-// TODO: Replace with your actual breadcrumb setup
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Day-Statuses Edit',
-        href: dayStatuses.edit().url,
-    },
-];
+export default function DayStatusesEdit({ dayStatus }: { dayStatus: DayStatus }) {
+    const breadcrumbs: BreadcrumbItem[] = [
+        {
+            title: 'Day-Statuses Edit',
+            href: dayStatuses.edit(dayStatus.id).url,
+        },
+    ];
 
-export default function DayStatusesEdit({ dayStatus }: { dayStatus: unknown }) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Day-Statuses Edit" />
