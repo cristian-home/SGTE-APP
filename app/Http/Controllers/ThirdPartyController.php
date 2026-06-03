@@ -10,7 +10,9 @@ use App\Models\DocumentType;
 use App\Models\Municipality;
 use App\Models\ThirdParty;
 use App\Models\Vehicle;
+use App\Support\FacetCounts;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,19 +34,8 @@ class ThirdPartyController extends Controller
                 'municipality.department:id,name',
                 'documentType:id,code,name',
             ])
-            ->allowedFilters([
-                AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
-                'identification_number',
-                AllowedFilter::exact('is_natural_person'),
-                'first_name',
-                'first_lastname',
-                'company_name',
-                AllowedFilter::exact('municipality_id'),
-                AllowedFilter::exact('is_customer'),
-                AllowedFilter::exact('is_provider'),
-                AllowedFilter::exact('active'),
-            ])
-            ->allowedSorts(['first_name', 'first_lastname', 'company_name', 'municipality_id', 'active'])
+            ->allowedFilters(...$this->allowedFilters())
+            ->allowedSorts(...['first_name', 'first_lastname', 'company_name', 'municipality_id', 'active'])
             ->defaultSort('id')
             ->paginate($request->perPage())
             ->withQueryString();
@@ -57,16 +48,43 @@ class ThirdPartyController extends Controller
             'thirdParties' => $thirdParties,
             'municipalities' => $this->municipalitiesPayload(),
             'documentTypes' => DocumentType::orderBy('code')->get(['id', 'code', 'name']),
+            'facetCounts' => FacetCounts::for(
+                ThirdParty::class,
+                $this->allowedFilters(),
+                $request,
+                ['municipality_id' => 'municipality_id'],
+            ),
         ]);
+    }
+
+    /**
+     * QueryBuilder filters shared by index() and the facet-count helper.
+     *
+     * @return array<int, mixed>
+     */
+    protected function allowedFilters(): array
+    {
+        return [
+            AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
+            'identification_number',
+            AllowedFilter::exact('is_natural_person'),
+            'first_name',
+            'first_lastname',
+            'company_name',
+            AllowedFilter::exact('municipality_id'),
+            AllowedFilter::exact('is_customer'),
+            AllowedFilter::exact('is_provider'),
+            AllowedFilter::exact('active'),
+        ];
     }
 
     /**
      * Shared municipality payload — eager-loads department for the
      * combobox grouping and sorts by name.
      *
-     * @return \Illuminate\Database\Eloquent\Collection<int, Municipality>
+     * @return Collection<int, Municipality>
      */
-    private function municipalitiesPayload(): \Illuminate\Database\Eloquent\Collection
+    private function municipalitiesPayload(): Collection
     {
         return Municipality::query()
             ->with('department:id,name')
@@ -105,9 +123,10 @@ class ThirdPartyController extends Controller
         // valid state for either role being false.
         $recentVehicles = Vehicle::query()
             ->where('third_party_id', $thirdParty->id)
+            ->with('vehicleType:id,code,name')
             ->orderByDesc('created_at')
             ->limit(5)
-            ->get(['id', 'plate', 'internal_code', 'type', 'status']);
+            ->get(['id', 'plate', 'internal_code', 'vehicle_type_id', 'status']);
 
         $recentContracts = Contract::query()
             ->where('third_party_id', $thirdParty->id)

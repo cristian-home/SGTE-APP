@@ -46,7 +46,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     foreach ([
         'document-types', 'eps', 'pension-funds', 'severance-funds',
         'third-parties', 'drivers', 'vehicles', 'contracts', 'invoices',
-        'incident-types',
+        'incident-types', 'vehicle-types',
     ] as $modalResource) {
         Route::get($modalResource.'/create', fn () => redirect()->route($modalResource.'.index'));
         Route::get($modalResource.'/edit', fn () => redirect()->route($modalResource.'.index'));
@@ -129,6 +129,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('incident-types', App\Http\Controllers\IncidentTypeController::class)
         ->except(['create', 'edit'])
         ->middleware('can:'.App\Enums\Permission::VIEW_INCIDENT_TYPES->value);
+    Route::resource('vehicle-types', App\Http\Controllers\VehicleTypeController::class)
+        ->only(['index', 'store', 'update', 'destroy'])
+        ->middleware('can:'.App\Enums\Permission::VIEW_VEHICLE_TYPES->value);
     // Service incidents — intentionally NOT gated at the route level.
     // Drivers have CREATE_INCIDENTS but no VIEW_INCIDENTS (they file
     // incidents on their own services from the driver portal), so a

@@ -24,11 +24,11 @@ class FuecNumberRangeController extends Controller
         Gate::authorize(Permission::MANAGE_FUEC_NUMBER_RANGES->value);
 
         $ranges = QueryBuilder::for(FuecNumberRange::class)
-            ->allowedFilters([
+            ->allowedFilters(...[
                 AllowedFilter::exact('active'),
                 'resolution_number',
             ])
-            ->allowedSorts(['resolution_year', 'range_from', 'range_to', 'active', 'created_at'])
+            ->allowedSorts(...['resolution_year', 'range_from', 'range_to', 'active', 'created_at'])
             ->defaultSort('-active', '-resolution_year', '-created_at')
             ->paginate($request->perPage())
             ->withQueryString()

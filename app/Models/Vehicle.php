@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Concerns\HasTimezone;
 use App\Enums\VehicleStatus;
-use App\Enums\VehicleType;
 use App\Support\SearchField;
 use App\Support\Tz;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -13,8 +12,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Scout\Searchable;
-use Spatie\Activitylog\LogOptions;
-use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 class Vehicle extends Model
 {
@@ -33,7 +32,7 @@ class Vehicle extends Model
         'brand',
         'line',
         'model_year',
-        'type',
+        'vehicle_type_id',
         'engine_number',
         'chassis_number',
         'capacity',
@@ -67,7 +66,7 @@ class Vehicle extends Model
     {
         return [
             'id' => 'integer',
-            'type' => VehicleType::class,
+            'vehicle_type_id' => 'integer',
             'municipality_id' => 'integer',
             'is_third_party' => 'boolean',
             'third_party_id' => 'integer',
@@ -172,6 +171,11 @@ class Vehicle extends Model
         });
     }
 
+    public function vehicleType(): BelongsTo
+    {
+        return $this->belongsTo(VehicleType::class);
+    }
+
     public function municipality(): BelongsTo
     {
         return $this->belongsTo(Municipality::class);
@@ -204,7 +208,7 @@ class Vehicle extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['id', 'internal_code', 'plate', 'mobile_number', 'brand', 'line', 'model_year', 'type', 'engine_number', 'chassis_number', 'capacity', 'municipality_id', 'is_third_party', 'third_party_id', 'timezone', 'soat_due_at', 'rtm_due_at', 'operation_card_due_at', 'status']);
+            ->logOnly(['id', 'internal_code', 'plate', 'mobile_number', 'brand', 'line', 'model_year', 'vehicle_type_id', 'engine_number', 'chassis_number', 'capacity', 'municipality_id', 'is_third_party', 'third_party_id', 'timezone', 'soat_due_at', 'rtm_due_at', 'operation_card_due_at', 'status']);
     }
 
     /**
@@ -230,7 +234,7 @@ class Vehicle extends Model
             'brand' => $this->brand,
             'line' => $this->line,
             'model_year' => $this->model_year,
-            'type' => $this->type?->value,
+            'type' => $this->vehicleType?->code,
             'engine_number' => $this->engine_number,
             'chassis_number' => $this->chassis_number,
             'capacity' => $this->capacity,

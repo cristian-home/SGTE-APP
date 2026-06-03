@@ -22,13 +22,13 @@ class IncidentTypeController extends Controller
         Gate::authorize(Permission::VIEW_INCIDENT_TYPES->value);
 
         $incidentTypes = QueryBuilder::for(IncidentType::class)
-            ->allowedFilters([
+            ->allowedFilters(...[
                 AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
                 'code',
                 'name',
                 'severity',
             ])
-            ->allowedSorts(['code', 'name', 'severity'])
+            ->allowedSorts(...['code', 'name', 'severity'])
             ->get();
 
         return Inertia::render('incident-types/index', [

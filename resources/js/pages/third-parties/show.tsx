@@ -15,7 +15,6 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { type VehicleType, VehicleTypeLabel } from '@/enums/VehicleType';
 import AppLayout from '@/layouts/app-layout';
 import contracts from '@/routes/contracts';
 import thirdParties from '@/routes/third-parties';
@@ -61,7 +60,7 @@ interface RecentVehicleRow {
     id: number;
     plate: string;
     internal_code: string | null;
-    type: string;
+    vehicle_type?: { id: number; code: string; name: string } | null;
     status: string;
 }
 
@@ -346,9 +345,8 @@ export default function ThirdPartiesShow({
                                                     {v.internal_code ?? '—'}
                                                 </TableCell>
                                                 <TableCell>
-                                                    {VehicleTypeLabel[
-                                                        v.type as VehicleType
-                                                    ] ?? v.type}
+                                                    {v.vehicle_type?.name ??
+                                                        '—'}
                                                 </TableCell>
                                                 <TableCell>
                                                     <Badge

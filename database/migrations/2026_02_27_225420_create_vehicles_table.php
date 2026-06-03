@@ -21,7 +21,12 @@ return new class extends Migration
             $table->string('brand', 50);
             $table->string('line', 50);
             $table->integer('model_year');
-            $table->enum('type', ['bus', 'buseta', 'microbus', 'van', 'automobile']);
+            // Vehicle type is a catalog FK (created in 225419). On
+            // already-migrated databases the legacy `type` enum column was
+            // converted to this FK by the 2026_06_01 catalog migration.
+            $table->foreignId('vehicle_type_id')
+                ->constrained('vehicle_types')
+                ->restrictOnDelete();
             $table->string('engine_number', 50);
             $table->string('chassis_number', 50);
             $table->integer('capacity');

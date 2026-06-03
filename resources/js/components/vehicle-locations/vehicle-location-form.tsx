@@ -1,8 +1,8 @@
-import { APIProvider } from '@vis.gl/react-google-maps';
 import { ChevronDown, Crosshair, MapPin } from 'lucide-react';
 import { useState } from 'react';
 import FieldFooter from '@/components/field-footer';
 import MapPickerModal from '@/components/map-picker-modal';
+import { MapsScope } from '@/components/maps-scope';
 import { Button } from '@/components/ui/button';
 import {
     Collapsible,
@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import VehicleCombobox, {
     type VehicleOption,
 } from '@/components/vehicles/vehicle-combobox';
-import { BOGOTA_FALLBACK, GOOGLE_MAPS_BROWSER_KEY } from '@/lib/google-maps';
+import { BOGOTA_FALLBACK } from '@/lib/google-maps';
 import { cn } from '@/lib/utils';
 
 export interface VehicleLocationFormData {
@@ -101,7 +101,7 @@ export function VehicleLocationForm({
     }
 
     return (
-        <APIProvider apiKey={GOOGLE_MAPS_BROWSER_KEY}>
+        <MapsScope>
             <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-1 md:col-span-2">
                     <Label htmlFor="vehicle_id">Vehículo *</Label>
@@ -261,6 +261,6 @@ export function VehicleLocationForm({
                     instanceLabel="vehicle-location"
                 />
             )}
-        </APIProvider>
+        </MapsScope>
     );
 }

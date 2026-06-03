@@ -11,9 +11,11 @@ use App\Models\Municipality;
 use App\Models\Service;
 use App\Models\ServiceIncident;
 use App\Models\ThirdParty;
+use App\Support\FacetCounts;
 use App\Support\Tz;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -42,19 +44,8 @@ class ContractController extends Controller
                 'thirdParty:id,document_type_id,identification_number,is_natural_person,first_name,first_lastname,company_name,is_customer,is_provider',
                 'thirdParty.documentType:id,code,name',
             ])
-            ->allowedFilters([
-                AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
-                'contract_number',
-                AllowedFilter::exact('contract_object'),
-                AllowedFilter::exact('is_generic'),
-                AllowedFilter::exact('active'),
-                AllowedFilter::exact('third_party_id'),
-                AllowedFilter::callback('contract_status', function (Builder $query, $value) {
-                    $first = is_array($value) ? ($value[0] ?? '') : explode(',', (string) $value)[0];
-                    $this->applyContractStatusFilter($query, $first);
-                }),
-            ])
-            ->allowedSorts(['contract_number', 'start_at', 'end_at', 'created_at'])
+            ->allowedFilters(...$this->allowedFilters())
+            ->allowedSorts(...['contract_number', 'start_at', 'end_at', 'created_at'])
             ->defaultSort('-created_at')
             ->paginate($request->perPage())
             ->withQueryString();
@@ -65,8 +56,35 @@ class ContractController extends Controller
 
         return Inertia::render('contracts/index', [
             'contracts' => $contracts,
+            'facetCounts' => FacetCounts::for(
+                Contract::class,
+                $this->allowedFilters(),
+                $request,
+                ['third_party_id' => 'third_party_id'],
+            ),
             ...$this->modalReferenceData(),
         ]);
+    }
+
+    /**
+     * QueryBuilder filters shared by index() and the facet-count helper.
+     *
+     * @return array<int, mixed>
+     */
+    protected function allowedFilters(): array
+    {
+        return [
+            AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
+            'contract_number',
+            AllowedFilter::exact('contract_object'),
+            AllowedFilter::exact('is_generic'),
+            AllowedFilter::exact('active'),
+            AllowedFilter::exact('third_party_id'),
+            AllowedFilter::callback('contract_status', function (Builder $query, $value) {
+                $first = is_array($value) ? ($value[0] ?? '') : explode(',', (string) $value)[0];
+                $this->applyContractStatusFilter($query, $first);
+            }),
+        ];
     }
 
     /**
@@ -74,7 +92,7 @@ class ContractController extends Controller
      * third parties for the Cliente combobox, plus document types and
      * municipalities for the nested "crear cliente" dialog.
      *
-     * @return array{thirdParties: \Illuminate\Database\Eloquent\Collection<int, ThirdParty>, documentTypes: \Illuminate\Database\Eloquent\Collection<int, DocumentType>, municipalities: \Illuminate\Database\Eloquent\Collection<int, Municipality>}
+     * @return array{thirdParties: Collection<int, ThirdParty>, documentTypes: Collection<int, DocumentType>, municipalities: Collection<int, Municipality>}
      */
     private function modalReferenceData(): array
     {
@@ -132,7 +150,7 @@ class ContractController extends Controller
      * true` third parties with the minimum fields the
      * `<ThirdPartyCombobox />` needs.
      */
-    private function customerOptions(): \Illuminate\Database\Eloquent\Collection
+    private function customerOptions(): Collection
     {
         return ThirdParty::query()
             ->where('is_customer', true)

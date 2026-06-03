@@ -1,5 +1,4 @@
 import { usePage } from '@inertiajs/react';
-import { APIProvider } from '@vis.gl/react-google-maps';
 import { endOfDay, format as formatDate, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -27,6 +26,7 @@ import LocationField, {
     type CoordinatesSource,
 } from '@/components/location-field';
 import MapPickerModal from '@/components/map-picker-modal';
+import { MapsScope } from '@/components/maps-scope';
 import { type MunicipalityOption } from '@/components/municipality-combobox';
 import BillingGroupsInput from '@/components/services/billing-groups-input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -53,9 +53,7 @@ import {
 } from '@/components/ui/tooltip';
 import { PaymentMethod, PaymentMethodLabel } from '@/enums/PaymentMethod';
 import { ServiceStatus, ServiceStatusLabel } from '@/enums/ServiceStatus';
-import { type VehicleType, VehicleTypeLabel } from '@/enums/VehicleType';
 import { dateToWallClock, viewerToday, wallClockToDate } from '@/lib/datetime';
-import { GOOGLE_MAPS_BROWSER_KEY } from '@/lib/google-maps';
 import { normalizeCity } from '@/lib/normalize-city';
 import { cn } from '@/lib/utils';
 import type { DayStatus } from '@/types/models';
@@ -63,8 +61,8 @@ import type { DayStatus } from '@/types/models';
 export interface VehicleOption {
     id: number;
     plate: string;
-    /** Serialized VehicleType enum value ('bus' | 'buseta' | 'microbus' | 'van' | 'automobile'). Null for legacy rows without a type. */
-    type: VehicleType | null;
+    /** Vehicle type from the vehicle_types catalog (eager-loaded). */
+    vehicle_type?: { id: number; code: string; name: string } | null;
     is_third_party: boolean;
     third_party_id: number | null;
     third_party?: ThirdPartyOption | null;
@@ -866,9 +864,10 @@ export default function ServiceForm({
         : actualLowerBound;
 
     return (
-        // One APIProvider for the whole form so both LocationFields and
-        // both MapPickerModals share a single Google Maps JS load.
-        <APIProvider apiKey={GOOGLE_MAPS_BROWSER_KEY}>
+        // One maps scope for the whole form so both LocationFields and
+        // both MapPickerModals share a single Google Maps JS load (and are
+        // disabled together when maps are off).
+        <MapsScope>
             {isFullyLocked && (
                 <Alert variant="destructive">
                     <Lock className="size-4" />
@@ -945,26 +944,28 @@ export default function ServiceForm({
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {serviceNumber ? (
-                        <div className="grid gap-2">
-                            <Label htmlFor="service_number">Consecutivo</Label>
-                            <div
-                                id="service_number"
-                                className="flex h-9 w-fit items-center rounded-md bg-muted px-3 font-mono text-base font-semibold tracking-wide tabular-nums"
-                                aria-label="Consecutivo del servicio"
-                            >
-                                {serviceNumber}
+                    <div className="flex flex-col gap-4 md:flex-row md:items-start">
+                        {serviceNumber ? (
+                            <div className="grid shrink-0 gap-2">
+                                <Label htmlFor="service_number">
+                                    Consecutivo
+                                </Label>
+                                <div
+                                    id="service_number"
+                                    className="flex h-9 w-fit items-center rounded-md bg-muted px-3 font-mono text-base font-semibold tracking-wide whitespace-nowrap tabular-nums"
+                                    aria-label="Consecutivo del servicio"
+                                >
+                                    {serviceNumber}
+                                </div>
+                                <p className="max-w-48 text-xs text-muted-foreground">
+                                    {mode === 'create'
+                                        ? 'Asignación automática.'
+                                        : 'Identificador del servicio.'}
+                                </p>
                             </div>
-                            <p className="text-xs text-muted-foreground">
-                                {mode === 'create'
-                                    ? 'Reservado al abrir; se confirma al guardar.'
-                                    : 'Identificador del servicio.'}
-                            </p>
-                        </div>
-                    ) : null}
-                    <div className="grid gap-4 md:grid-cols-2 md:grid-rows-[auto_1fr_auto]">
+                        ) : null}
                         <div
-                            className="group/field grid gap-2 md:row-span-3 md:grid-rows-subgrid"
+                            className="group/field grid min-w-0 flex-1 gap-2"
                             data-error={invalid('contract_id')}
                         >
                             <Label htmlFor="contract_id">Contrato *</Label>
@@ -1062,7 +1063,7 @@ export default function ServiceForm({
                             <FieldFooter error={errors.contract_id} />
                         </div>
                         <div
-                            className="group/field grid gap-2 md:row-span-3 md:grid-rows-subgrid"
+                            className="group/field grid shrink-0 gap-2"
                             data-error={invalid('service_status')}
                         >
                             <Label htmlFor="service_status">Estado *</Label>
@@ -1093,14 +1094,14 @@ export default function ServiceForm({
                                 }}
                                 disabled={isFieldDisabled('service_status')}
                                 aria-invalid={invalid('service_status')}
-                                className="w-full justify-stretch"
+                                className="w-fit"
                             >
                                 {Object.entries(ServiceStatus).map(
                                     ([key, value]) => (
                                         <ToggleGroupItem
                                             key={key}
                                             value={value}
-                                            className="flex-1"
+                                            className="px-4"
                                         >
                                             {ServiceStatusLabel[value]}
                                         </ToggleGroupItem>
@@ -1133,16 +1134,16 @@ export default function ServiceForm({
                                 }}
                                 getKey={(v) => String(v.id)}
                                 getSearchText={(v) =>
-                                    `${v.plate} ${v.type ? VehicleTypeLabel[v.type] : ''} ${v.third_party ? thirdPartyLabel(v.third_party) : ''}`
+                                    `${v.plate} ${v.vehicle_type?.name ?? ''} ${v.third_party ? thirdPartyLabel(v.third_party) : ''}`
                                 }
                                 renderTrigger={(v) => (
                                     <span className="flex min-w-0 items-center gap-2">
                                         <span className="font-mono">
                                             {v.plate}
                                         </span>
-                                        {v.type && (
+                                        {v.vehicle_type && (
                                             <span className="truncate text-xs text-muted-foreground">
-                                                · {VehicleTypeLabel[v.type]}
+                                                · {v.vehicle_type.name}
                                             </span>
                                         )}
                                         {v.is_third_party && (
@@ -1161,12 +1162,12 @@ export default function ServiceForm({
                                             <span className="font-mono">
                                                 {v.plate}
                                             </span>
-                                            {v.type && (
+                                            {v.vehicle_type && (
                                                 <Badge
                                                     variant="outline"
                                                     className="font-normal"
                                                 >
-                                                    {VehicleTypeLabel[v.type]}
+                                                    {v.vehicle_type.name}
                                                 </Badge>
                                             )}
                                             {v.is_third_party && (
@@ -1920,6 +1921,6 @@ export default function ServiceForm({
                     </CardContent>
                 </Card>
             )}
-        </APIProvider>
+        </MapsScope>
     );
 }

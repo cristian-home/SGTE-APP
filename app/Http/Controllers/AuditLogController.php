@@ -22,6 +22,7 @@ use App\Models\VehicleLocation;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -72,7 +73,7 @@ class AuditLogController extends Controller
 
         $activities = QueryBuilder::for(Activity::class)
             ->with(['causer:id,name,email'])
-            ->allowedFilters([
+            ->allowedFilters(...[
                 AllowedFilter::callback('search', function (Builder $query, $value): void {
                     $value = is_array($value) ? ($value[0] ?? '') : (string) $value;
                     if ($value === '') {
@@ -103,7 +104,7 @@ class AuditLogController extends Controller
                     $query->whereDate('created_at', '<=', $value);
                 }),
             ])
-            ->allowedSorts(['created_at', 'log_name', 'event'])
+            ->allowedSorts(...['created_at', 'log_name', 'event'])
             ->defaultSort('-created_at', '-id')
             ->paginate($request->perPage())
             ->withQueryString()
@@ -133,8 +134,13 @@ class AuditLogController extends Controller
      */
     private function projectActivity(Activity $activity): array
     {
-        /** @var \Illuminate\Support\Collection<string, mixed> $properties */
+        /** @var Collection<string, mixed> $properties */
         $properties = $activity->properties ?? collect();
+        // laravel-activitylog v5 stores the attribute diff in `attribute_changes`;
+        // v4 (and rows written before the upgrade) kept it inside `properties`.
+        // Prefer the v5 location and fall back to `properties` for legacy rows.
+        /** @var Collection<string, mixed> $changes */
+        $changes = $activity->attribute_changes ?? collect();
 
         return [
             'id' => $activity->id,
@@ -150,8 +156,8 @@ class AuditLogController extends Controller
             ] : null,
             'created_at' => $activity->created_at?->toIso8601String(),
             'properties' => $properties->toArray(),
-            'attributes' => (array) $properties->get('attributes', []),
-            'old_attributes' => (array) $properties->get('old', []),
+            'attributes' => (array) ($changes->get('attributes') ?? $properties->get('attributes', [])),
+            'old_attributes' => (array) ($changes->get('old') ?? $properties->get('old', [])),
         ];
     }
 

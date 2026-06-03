@@ -9,8 +9,10 @@ import VehicleDialog, {
     type EditableVehicle,
 } from '@/components/vehicles/vehicle-dialog';
 import { vehicleDocsAggregateStatus } from '@/components/vehicles/vehicle-document-pills';
+import { type VehicleTypeOption } from '@/components/vehicles/vehicle-form';
 import { useServerTable } from '@/hooks/use-server-table';
 import AppLayout from '@/layouts/app-layout';
+import { type FacetCounts, withCounts } from '@/lib/facet-filter';
 import vehicles from '@/routes/vehicles';
 
 import { columns, type VehicleTableMeta } from './columns';
@@ -86,11 +88,15 @@ export default function VehiclesIndex({
     vehicles: paginatedVehicles,
     municipalities,
     thirdParties,
+    vehicleTypes,
+    facetCounts,
     suggestedInternalCode,
 }: {
     vehicles: PaginatedData<Vehicle>;
     municipalities: MunicipalityOption[];
     thirdParties: ThirdPartyOption[];
+    vehicleTypes: VehicleTypeOption[];
+    facetCounts: FacetCounts;
     suggestedInternalCode: string;
 }) {
     'use no memo';
@@ -122,16 +128,20 @@ export default function VehiclesIndex({
             {
                 name: 'municipality_id',
                 label: 'Ciudad',
-                options: municipalities.map((m) => ({
-                    value: String(m.id),
-                    label: m.department
-                        ? `${m.name} (${m.department.name})`
-                        : m.name,
-                })),
+                options: withCounts(
+                    municipalities.map((m) => ({
+                        value: String(m.id),
+                        label: m.department
+                            ? `${m.name} (${m.department.name})`
+                            : m.name,
+                    })),
+                    facetCounts.municipality_id,
+                ),
                 capitalizeOptions: true,
+                sectioned: true,
             },
         ],
-        [municipalities],
+        [municipalities, facetCounts],
     );
 
     const {
@@ -189,6 +199,7 @@ export default function VehiclesIndex({
                 vehicle={selectedVehicle}
                 municipalities={municipalities}
                 thirdParties={thirdParties}
+                vehicleTypes={vehicleTypes}
                 suggestedInternalCode={suggestedInternalCode}
             />
         </AppLayout>

@@ -4,7 +4,6 @@ namespace App\Http\Requests;
 
 use App\Enums\Permission;
 use App\Enums\VehicleStatus;
-use App\Enums\VehicleType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
@@ -32,7 +31,7 @@ class VehicleStoreRequest extends FormRequest
             'brand' => ['nullable', 'string', 'max:50'],
             'line' => ['nullable', 'string', 'max:50'],
             'model_year' => ['nullable', 'integer'],
-            'type' => ['required', Rule::enum(VehicleType::class)],
+            'vehicle_type_id' => ['required', 'integer', 'exists:vehicle_types,id'],
             'engine_number' => ['nullable', 'string', 'max:50'],
             'chassis_number' => ['nullable', 'string', 'max:50'],
             'capacity' => ['required', 'integer'],

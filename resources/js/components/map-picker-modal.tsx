@@ -8,6 +8,7 @@ import {
 } from '@vis.gl/react-google-maps';
 import { Loader2, MapPin } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { MapDisabledPlaceholder } from '@/components/map-disabled-placeholder';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -22,7 +23,11 @@ import { Label } from '@/components/ui/label';
 import { useAppearance } from '@/hooks/use-appearance';
 import { dlog } from '@/lib/debug-log';
 import { reverseGeocode } from '@/lib/google-geocoding';
-import { BOGOTA_FALLBACK, GOOGLE_MAPS_MAP_ID } from '@/lib/google-maps';
+import {
+    BOGOTA_FALLBACK,
+    GOOGLE_MAPS_MAP_ID,
+    MAPS_ENABLED,
+} from '@/lib/google-maps';
 import { cn } from '@/lib/utils';
 
 const REVERSE_DEBOUNCE_MS = 600;
@@ -101,7 +106,9 @@ export default function MapPickerModal({
                     'h-[90vh] sm:h-[80vh]',
                 )}
             >
-                {open ? (
+                {open && !MAPS_ENABLED ? (
+                    <MapDisabledPlaceholder label="El selector de mapa está desactivado en este entorno." />
+                ) : open ? (
                     <MapPickerBody
                         channel={channel}
                         initialCenter={initialCenter}
@@ -269,10 +276,6 @@ function MapPickerBody({
             <div className="relative flex-1 px-6">
                 <div className="h-full overflow-hidden rounded-md border">
                     <GoogleMap
-                        // Google applies `colorScheme` only at map creation,
-                        // so re-key the map on theme change to force a fresh
-                        // instance in the new scheme.
-                        key={resolvedAppearance}
                         mapId={GOOGLE_MAPS_MAP_ID}
                         defaultCenter={center}
                         defaultZoom={initialZoom}

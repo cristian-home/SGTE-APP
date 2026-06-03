@@ -12,8 +12,11 @@ use App\Models\Invoice;
 use App\Models\Service;
 use App\Models\ThirdParty;
 use App\Services\InvoiceTotalCalculator;
+use App\Support\FacetCounts;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -40,13 +43,8 @@ class InvoiceController extends Controller
             ])
             // services_count drives the locked-total state of the edit modal.
             ->withCount('services')
-            ->allowedFilters([
-                AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
-                'invoice_number',
-                AllowedFilter::exact('payment_status'),
-                AllowedFilter::exact('third_party_id'),
-            ])
-            ->allowedSorts(['invoice_number', 'issued_at', 'total_value', 'payment_status'])
+            ->allowedFilters(...$this->allowedFilters())
+            ->allowedSorts(...['invoice_number', 'issued_at', 'total_value', 'payment_status'])
             ->defaultSort('-issued_at')
             ->paginate($request->perPage())
             ->withQueryString();
@@ -59,7 +57,28 @@ class InvoiceController extends Controller
             'invoices' => $invoices,
             'thirdParties' => $this->customerOptions(),
             'nextInvoiceNumberPreview' => Invoice::nextInvoiceNumber(),
+            'facetCounts' => FacetCounts::for(
+                Invoice::class,
+                $this->allowedFilters(),
+                $request,
+                ['third_party_id' => 'third_party_id'],
+            ),
         ]);
+    }
+
+    /**
+     * QueryBuilder filters shared by index() and the facet-count helper.
+     *
+     * @return array<int, mixed>
+     */
+    protected function allowedFilters(): array
+    {
+        return [
+            AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
+            'invoice_number',
+            AllowedFilter::exact('payment_status'),
+            AllowedFilter::exact('third_party_id'),
+        ];
     }
 
     /**
@@ -135,9 +154,9 @@ class InvoiceController extends Controller
      * the above-the-table combobox filter. Mirrors
      * ContractController::customerOptions.
      *
-     * @return \Illuminate\Database\Eloquent\Collection<int, ThirdParty>
+     * @return Collection<int, ThirdParty>
      */
-    private function customerOptions(): \Illuminate\Database\Eloquent\Collection
+    private function customerOptions(): Collection
     {
         return ThirdParty::query()
             ->where('is_customer', true)
@@ -204,7 +223,7 @@ class InvoiceController extends Controller
                     return $created;
                 });
                 break;
-            } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+            } catch (UniqueConstraintViolationException $e) {
                 $attempts++;
                 if ($attempts >= 3) {
                     throw $e;
@@ -613,7 +632,7 @@ class InvoiceController extends Controller
      * Shipped alongside `invoice` on the show payload so the picker's
      * first open is hydrated (see Notes in the requirement doc).
      *
-     * @return \Illuminate\Database\Eloquent\Collection<int, Service>
+     * @return Collection<int, Service>
      */
     /**
      * Stream an informational PDF of the invoice inline.
@@ -705,13 +724,13 @@ class InvoiceController extends Controller
         return $tp->company_name ?? '—';
     }
 
-    private function candidateServices(Invoice $invoice): \Illuminate\Database\Eloquent\Collection
+    private function candidateServices(Invoice $invoice): Collection
     {
         // Defensive: invoices may have a null third_party_id (the FK is
         // nullOnDelete in the migration). Skip the candidate query in
         // that case — without a customer there's no useful filter.
         if ($invoice->third_party_id === null) {
-            return new \Illuminate\Database\Eloquent\Collection;
+            return new Collection;
         }
 
         return $this->candidatesForCustomer($invoice->third_party_id);
@@ -723,7 +742,7 @@ class InvoiceController extends Controller
      * picker (via candidateServices) and by the create dialog inline
      * picker (via index?eligible_for=...).
      */
-    private function candidatesForCustomer(int $customerId): \Illuminate\Database\Eloquent\Collection
+    private function candidatesForCustomer(int $customerId): Collection
     {
         $cutoff = Carbon::now((string) config('app.operation_tz'))->subDays(90)->toDateString();
 

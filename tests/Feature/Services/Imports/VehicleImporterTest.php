@@ -53,6 +53,26 @@ test('valid own-fleet row creates a vehicle and uppercases plate', function (): 
     expect($vehicle->is_third_party)->toBeFalse();
 });
 
+test('imports a microbus by code and resolves the vehicle type', function (): void {
+    $csv = headerVehicle().
+        'MIC001,VM01,3001234567,microbus,Hyundai,County,2022,ENGMIC,CHSMIC,20,0,,2026-12-31,2026-08-15,2027-03-01,,'."\n";
+
+    $result = runVehicleImporter($csv);
+
+    expect($result['counters']['created'])->toBe(1);
+    expect(Vehicle::query()->where('plate', 'MIC001')->first()->vehicleType->code)->toBe('microbus');
+});
+
+test('resolves the vehicle type by display name, accent-insensitive', function (): void {
+    $csv = headerVehicle().
+        'MIC002,VM02,3001234567,Microbús,Hyundai,County,2022,ENGMI2,CHSMI2,20,0,,2026-12-31,2026-08-15,2027-03-01,,'."\n";
+
+    $result = runVehicleImporter($csv);
+
+    expect($result['counters']['created'])->toBe(1);
+    expect(Vehicle::query()->where('plate', 'MIC002')->first()->vehicleType->code)->toBe('microbus');
+});
+
 test('third-party vehicle without identification goes to errored', function (): void {
     $csv = headerVehicle().
         'DEF456,V002,3001234567,bus,Chevrolet,NPR,2020,ENG12345,CHS67890,30,1,,2026-12-31,2026-08-15,2027-03-01,,'."\n";

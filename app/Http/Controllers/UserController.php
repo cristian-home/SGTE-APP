@@ -33,7 +33,7 @@ class UserController extends Controller
 
         $users = QueryBuilder::for(User::class)
             ->with('roles:id,name')
-            ->allowedFilters([
+            ->allowedFilters(...[
                 AllowedFilter::callback('search', function (Builder $query, $value): void {
                     $needle = '%'.mb_strtolower((string) $value).'%';
                     $query->where(function (Builder $q) use ($needle): void {
@@ -53,7 +53,7 @@ class UserController extends Controller
                     $query->where('is_active', filter_var($value, FILTER_VALIDATE_BOOL));
                 }),
             ])
-            ->allowedSorts([
+            ->allowedSorts(...[
                 'name',
                 'email',
                 'last_login_at',

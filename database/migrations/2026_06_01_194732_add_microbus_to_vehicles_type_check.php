@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -23,6 +24,11 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Fresh installs create vehicles with a vehicle_type_id FK and no
+        // legacy `type` column, so there is no CHECK constraint to patch.
+        if (! Schema::hasColumn('vehicles', 'type')) {
+            return;
+        }
         if (DB::connection()->getDriverName() !== 'pgsql') {
             return;
         }
@@ -36,6 +42,9 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (! Schema::hasColumn('vehicles', 'type')) {
+            return;
+        }
         if (DB::connection()->getDriverName() !== 'pgsql') {
             return;
         }

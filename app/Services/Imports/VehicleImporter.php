@@ -3,14 +3,22 @@
 namespace App\Services\Imports;
 
 use App\Enums\VehicleStatus;
-use App\Enums\VehicleType;
 use App\Models\Municipality;
 use App\Models\ThirdParty;
 use App\Models\Vehicle;
+use App\Models\VehicleType;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class VehicleImporter extends AbstractImporter
 {
+    /**
+     * Lazily-built lookup from a normalized code/name to vehicle_type id.
+     *
+     * @var array<string, int>|null
+     */
+    private ?array $typeLookup = null;
+
     public function expectedHeaders(): array
     {
         return [
@@ -41,13 +49,13 @@ class VehicleImporter extends AbstractImporter
 
     public function rules(): array
     {
-        $allowedTypes = array_map(fn (VehicleType $t) => $t->value, VehicleType::cases());
-
         return [
             'plate' => ['required', 'string', 'min:6', 'max:6'],
             'internal_code' => ['required', 'string', 'max:20'],
             'mobile_number' => ['required', 'string', 'max:20'],
-            'type' => ['required', 'string', 'in:'.implode(',', $allowedTypes)],
+            // Resolved to a vehicle_types row (by code or name) in
+            // transformRow; only presence is validated here.
+            'type' => ['required', 'string'],
             'brand' => ['required', 'string', 'max:50'],
             'line' => ['required', 'string', 'max:50'],
             'model_year' => ['required', 'integer', 'between:1980,2100'],
@@ -71,7 +79,6 @@ class VehicleImporter extends AbstractImporter
         return [
             'plate.min' => 'La placa debe tener exactamente 6 caracteres.',
             'plate.max' => 'La placa debe tener exactamente 6 caracteres.',
-            'type.in' => 'Tipo de vehículo inválido. Valores permitidos: '.implode(', ', array_map(fn (VehicleType $t) => $t->value, VehicleType::cases())).'.',
             'third_party_identification.required_if' => 'La identificación del tercero es obligatoria cuando is_third_party=1.',
             'third_party_identification.exists' => 'No existe un tercero con esa identificación.',
             'municipality_code.exists' => 'El municipio no existe en el catálogo DIVIPOLA.',
@@ -81,6 +88,8 @@ class VehicleImporter extends AbstractImporter
 
     public function transformRow(array $row): array
     {
+        $vehicleTypeId = $this->resolveVehicleTypeId((string) $row['type']);
+
         $thirdPartyId = null;
         if ((bool) $row['is_third_party']) {
             $thirdParty = ThirdParty::query()
@@ -106,7 +115,7 @@ class VehicleImporter extends AbstractImporter
             'plate' => strtoupper((string) $row['plate']),
             'internal_code' => $row['internal_code'],
             'mobile_number' => $row['mobile_number'],
-            'type' => $row['type'],
+            'vehicle_type_id' => $vehicleTypeId,
             'brand' => $row['brand'],
             'line' => $row['line'],
             'model_year' => (int) $row['model_year'],
@@ -130,6 +139,36 @@ class VehicleImporter extends AbstractImporter
         }
 
         return $payload;
+    }
+
+    /**
+     * Resolve a CSV "type" cell to an active vehicle_types id. Matches by
+     * code or display name, case- and accent-insensitive (so "Microbús",
+     * "microbus" and "MICROBUS" all resolve). Throws with the valid codes
+     * when no active type matches.
+     */
+    private function resolveVehicleTypeId(string $raw): int
+    {
+        if ($this->typeLookup === null) {
+            $this->typeLookup = [];
+            foreach (VehicleType::query()->where('active', true)->get(['id', 'code', 'name']) as $type) {
+                $this->typeLookup[$this->normalizeType($type->code)] = $type->id;
+                $this->typeLookup[$this->normalizeType($type->name)] = $type->id;
+            }
+        }
+
+        $id = $this->typeLookup[$this->normalizeType($raw)] ?? null;
+        if ($id === null) {
+            $valid = VehicleType::query()->where('active', true)->orderBy('sort_order')->pluck('code')->implode(', ');
+            throw new RowTransformException("Tipo de vehículo inválido: '{$raw}'. Valores permitidos: {$valid}.");
+        }
+
+        return $id;
+    }
+
+    private function normalizeType(string $value): string
+    {
+        return Str::lower(Str::ascii(trim($value)));
     }
 
     public function findExisting(string $naturalKeyValue): ?Model

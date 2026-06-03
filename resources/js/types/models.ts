@@ -88,7 +88,7 @@ export type Vehicle = {
     brand: string;
     line: string;
     model_year: number;
-    type: string;
+    vehicle_type_id: number;
     engine_number: string | null;
     chassis_number: string | null;
     capacity: number;
@@ -103,9 +103,21 @@ export type Vehicle = {
     rtm_due_date: string;
     operation_card_due_date: string;
     status: string;
+    vehicle_type?: VehicleType;
     third_party?: ThirdParty;
     municipality?: Municipality;
     services?: Service[];
+} & Timestamps &
+    SoftDeletes;
+
+export type VehicleType = {
+    id: number;
+    code: string;
+    name: string;
+    allowed_license_categories: string[] | null;
+    active: boolean;
+    sort_order: number;
+    vehicles_count?: number;
 } & Timestamps &
     SoftDeletes;
 

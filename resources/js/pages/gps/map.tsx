@@ -12,6 +12,7 @@ import { FocusService } from '@/components/gps/focus-service';
 import { RoutePolyline } from '@/components/gps/route-polyline';
 import { ServicesPanel } from '@/components/gps/services-panel';
 import { VehicleMarker } from '@/components/gps/vehicle-marker';
+import { MapDisabledPlaceholder } from '@/components/map-disabled-placeholder';
 import { MapUnavailable } from '@/components/map-unavailable';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,11 +23,13 @@ import {
     SheetTrigger,
 } from '@/components/ui/sheet';
 import { useAppearance } from '@/hooks/use-appearance';
+import { useDeferredMount } from '@/hooks/use-deferred-mount';
 import { useIsMobile } from '@/hooks/use-mobile';
 import AppLayout from '@/layouts/app-layout';
 import {
     GOOGLE_MAPS_BROWSER_KEY,
     GOOGLE_MAPS_MAP_ID,
+    MAPS_ENABLED,
     MEDELLIN_CENTER,
     MEDELLIN_ZOOM,
 } from '@/lib/google-maps';
@@ -53,6 +56,10 @@ export default function GpsMap({
     const isMobile = useIsMobile();
     // Drive the Google map's colour scheme from the app theme.
     const { resolvedAppearance } = useAppearance();
+    // Defer the map one commit past the Inertia page swap so a Google
+    // Maps marker crash lands in a normal commit the ErrorBoundary catches
+    // (rather than escaping the swapComponent flushSync). See the hook.
+    const mapReady = useDeferredMount();
 
     useEffect(() => {
         // Skip the auto-refresh when the tab is hidden — Inertia v2
@@ -184,111 +191,116 @@ export default function GpsMap({
                                 <MapUnavailable reset={reset} />
                             )}
                         >
-                            <APIProvider apiKey={GOOGLE_MAPS_BROWSER_KEY}>
-                                <GoogleMap
-                                    // Google applies `colorScheme` only at map
-                                    // creation, so re-key the map on theme change
-                                    // to force a fresh instance in the new scheme.
-                                    key={resolvedAppearance}
-                                    colorScheme={
-                                        resolvedAppearance === 'dark'
-                                            ? 'DARK'
-                                            : 'LIGHT'
-                                    }
-                                    mapId={GOOGLE_MAPS_MAP_ID}
-                                    defaultCenter={MEDELLIN_CENTER}
-                                    defaultZoom={MEDELLIN_ZOOM}
-                                    gestureHandling="greedy"
-                                    clickableIcons={false}
-                                    streetViewControl={false}
-                                    className="size-full"
-                                >
-                                    <FitBounds services={activeServices} />
-                                    <FocusService
-                                        selectedId={selectedId}
-                                        services={activeServices}
-                                    />
+                            {!MAPS_ENABLED ? (
+                                <MapDisabledPlaceholder />
+                            ) : !mapReady ? (
+                                <div className="size-full animate-pulse bg-muted/30" />
+                            ) : (
+                                <APIProvider apiKey={GOOGLE_MAPS_BROWSER_KEY}>
+                                    <GoogleMap
+                                        colorScheme={
+                                            resolvedAppearance === 'dark'
+                                                ? 'DARK'
+                                                : 'LIGHT'
+                                        }
+                                        mapId={GOOGLE_MAPS_MAP_ID}
+                                        defaultCenter={MEDELLIN_CENTER}
+                                        defaultZoom={MEDELLIN_ZOOM}
+                                        gestureHandling="greedy"
+                                        clickableIcons={false}
+                                        streetViewControl={false}
+                                        className="size-full"
+                                    >
+                                        <FitBounds services={activeServices} />
+                                        <FocusService
+                                            selectedId={selectedId}
+                                            services={activeServices}
+                                        />
 
-                                    {routes.map((route) => (
-                                        <RoutePolyline
-                                            key={`route-${route.service_id}`}
-                                            path={route.path}
-                                            color={route.color}
-                                            confirmed={route.confirmed}
-                                            selected={
-                                                selectedId === route.service_id
-                                            }
-                                            dimmed={
+                                        {routes.map((route) => (
+                                            <RoutePolyline
+                                                key={`route-${route.service_id}`}
+                                                path={route.path}
+                                                color={route.color}
+                                                confirmed={route.confirmed}
+                                                selected={
+                                                    selectedId ===
+                                                    route.service_id
+                                                }
+                                                dimmed={
+                                                    selectedId !== null &&
+                                                    selectedId !==
+                                                        route.service_id
+                                                }
+                                            />
+                                        ))}
+
+                                        {routes.map((route) => {
+                                            const dimmed =
                                                 selectedId !== null &&
-                                                selectedId !== route.service_id
-                                            }
-                                        />
-                                    ))}
+                                                selectedId !== route.service_id;
+                                            return (
+                                                <AdvancedMarker
+                                                    key={`origin-${route.service_id}`}
+                                                    position={route.origin}
+                                                >
+                                                    <span
+                                                        className="block size-3.5 rounded-full transition-opacity"
+                                                        style={{
+                                                            background:
+                                                                route.color,
+                                                            border: `2px solid ${route.color}`,
+                                                            opacity: dimmed
+                                                                ? 0.3
+                                                                : 1,
+                                                        }}
+                                                    />
+                                                </AdvancedMarker>
+                                            );
+                                        })}
 
-                                    {routes.map((route) => {
-                                        const dimmed =
-                                            selectedId !== null &&
-                                            selectedId !== route.service_id;
-                                        return (
-                                            <AdvancedMarker
-                                                key={`origin-${route.service_id}`}
-                                                position={route.origin}
-                                            >
-                                                <span
-                                                    className="block size-3.5 rounded-full transition-opacity"
-                                                    style={{
-                                                        background: route.color,
-                                                        border: `2px solid ${route.color}`,
-                                                        opacity: dimmed
-                                                            ? 0.3
-                                                            : 1,
-                                                    }}
-                                                />
-                                            </AdvancedMarker>
-                                        );
-                                    })}
+                                        {routes.map((route) => {
+                                            const dimmed =
+                                                selectedId !== null &&
+                                                selectedId !== route.service_id;
+                                            return (
+                                                <AdvancedMarker
+                                                    key={`destination-${route.service_id}`}
+                                                    position={route.destination}
+                                                >
+                                                    <span
+                                                        className="block size-3.5 rounded-full bg-white transition-opacity"
+                                                        style={{
+                                                            border: `2px solid ${route.color}`,
+                                                            opacity: dimmed
+                                                                ? 0.3
+                                                                : 1,
+                                                        }}
+                                                    />
+                                                </AdvancedMarker>
+                                            );
+                                        })}
 
-                                    {routes.map((route) => {
-                                        const dimmed =
-                                            selectedId !== null &&
-                                            selectedId !== route.service_id;
-                                        return (
-                                            <AdvancedMarker
-                                                key={`destination-${route.service_id}`}
-                                                position={route.destination}
-                                            >
-                                                <span
-                                                    className="block size-3.5 rounded-full bg-white transition-opacity"
-                                                    style={{
-                                                        border: `2px solid ${route.color}`,
-                                                        opacity: dimmed
-                                                            ? 0.3
-                                                            : 1,
-                                                    }}
-                                                />
-                                            </AdvancedMarker>
-                                        );
-                                    })}
-
-                                    {markerServices.map((service) => (
-                                        <VehicleMarker
-                                            key={service.service_id}
-                                            service={service}
-                                            open={
-                                                selectedId ===
-                                                service.service_id
-                                            }
-                                            onOpenChange={(isOpen) =>
-                                                setSelectedId(
-                                                    isOpen
-                                                        ? service.service_id
-                                                        : null,
-                                                )
-                                            }
-                                        />
-                                    ))}
-                                </GoogleMap>
-                            </APIProvider>
+                                        {markerServices.map((service) => (
+                                            <VehicleMarker
+                                                key={service.service_id}
+                                                service={service}
+                                                open={
+                                                    selectedId ===
+                                                    service.service_id
+                                                }
+                                                onOpenChange={(isOpen) =>
+                                                    setSelectedId(
+                                                        isOpen
+                                                            ? service.service_id
+                                                            : null,
+                                                    )
+                                                }
+                                            />
+                                        ))}
+                                    </GoogleMap>
+                                </APIProvider>
+                            )}
                         </ErrorBoundary>
                     </div>
                 </div>

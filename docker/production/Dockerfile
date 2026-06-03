@@ -77,6 +77,10 @@ ARG VITE_REVERB_PORT=
 ARG VITE_REVERB_SCHEME=
 ARG VITE_GOOGLE_MAPS_BROWSER_KEY=
 ARG VITE_GOOGLE_MAPS_MAP_ID=
+# Master switch for Google Maps (dynamic maps + geocoding). Defaults to
+# enabled; set "false" in a build (e.g. staging) to ship placeholders and
+# make zero Google requests. See docs/google-maps-cost-controls.md.
+ARG VITE_GOOGLE_MAPS_ENABLED=true
 ENV VITE_APP_NAME=$VITE_APP_NAME \
     VITE_APP_DEBUG=$VITE_APP_DEBUG \
     VITE_REVERB_APP_KEY=$VITE_REVERB_APP_KEY \
@@ -84,7 +88,8 @@ ENV VITE_APP_NAME=$VITE_APP_NAME \
     VITE_REVERB_PORT=$VITE_REVERB_PORT \
     VITE_REVERB_SCHEME=$VITE_REVERB_SCHEME \
     VITE_GOOGLE_MAPS_BROWSER_KEY=$VITE_GOOGLE_MAPS_BROWSER_KEY \
-    VITE_GOOGLE_MAPS_MAP_ID=$VITE_GOOGLE_MAPS_MAP_ID
+    VITE_GOOGLE_MAPS_MAP_ID=$VITE_GOOGLE_MAPS_MAP_ID \
+    VITE_GOOGLE_MAPS_ENABLED=$VITE_GOOGLE_MAPS_ENABLED
 
 # Copy application source code and PHP dependencies
 COPY . .

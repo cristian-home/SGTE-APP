@@ -9,7 +9,10 @@ use App\Models\Municipality;
 use App\Models\Service;
 use App\Models\ThirdParty;
 use App\Models\Vehicle;
+use App\Models\VehicleType;
+use App\Support\FacetCounts;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -35,31 +38,13 @@ class VehicleController extends Controller
 
         $vehicles = QueryBuilder::for(Vehicle::class)
             ->with([
+                'vehicleType:id,code,name',
                 'thirdParty:id,company_name,first_name,first_lastname,is_natural_person',
                 'municipality:id,name,department_id',
                 'municipality.department:id,name',
             ])
-            ->allowedFilters([
-                AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
-                'internal_code',
-                'plate',
-                'brand',
-                AllowedFilter::exact('type'),
-                AllowedFilter::exact('municipality_id'),
-                AllowedFilter::exact('is_third_party'),
-                AllowedFilter::exact('status'),
-                AllowedFilter::callback('docs_status', function (Builder $query, $value) {
-                    // The faceted filter UI is multi-select but docs_status is
-                    // semantically single-select. If the URL carries multiple
-                    // values (comma-separated), honor the first one.
-                    $first = is_array($value) ? ($value[0] ?? '') : explode(',', (string) $value)[0];
-                    $this->applyDocsStatusFilter($query, $first);
-                }),
-                AllowedFilter::callback('soat_expired', fn (Builder $query, $value) => $this->applyDocumentExpiredFilter($query, 'soat_due_at', $value)),
-                AllowedFilter::callback('rtm_expired', fn (Builder $query, $value) => $this->applyDocumentExpiredFilter($query, 'rtm_due_at', $value)),
-                AllowedFilter::callback('operation_card_expired', fn (Builder $query, $value) => $this->applyDocumentExpiredFilter($query, 'operation_card_due_at', $value)),
-            ])
-            ->allowedSorts(['internal_code', 'plate', 'model_year', 'municipality_id', 'status'])
+            ->allowedFilters(...$this->allowedFilters())
+            ->allowedSorts(...['internal_code', 'plate', 'model_year', 'municipality_id', 'status'])
             ->defaultSort('plate')
             ->paginate($request->perPage())
             ->withQueryString();
@@ -71,15 +56,50 @@ class VehicleController extends Controller
         return Inertia::render('vehicles/index', [
             'vehicles' => $vehicles,
             'suggestedInternalCode' => Vehicle::nextInternalCode(),
+            'facetCounts' => FacetCounts::for(
+                Vehicle::class,
+                $this->allowedFilters(),
+                $request,
+                ['municipality_id' => 'municipality_id'],
+            ),
             ...$this->modalOptions(),
         ]);
+    }
+
+    /**
+     * QueryBuilder filters shared by index() and the facet-count helper.
+     *
+     * @return array<int, mixed>
+     */
+    protected function allowedFilters(): array
+    {
+        return [
+            AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
+            'internal_code',
+            'plate',
+            'brand',
+            AllowedFilter::exact('vehicle_type_id'),
+            AllowedFilter::exact('municipality_id'),
+            AllowedFilter::exact('is_third_party'),
+            AllowedFilter::exact('status'),
+            AllowedFilter::callback('docs_status', function (Builder $query, $value) {
+                // The faceted filter UI is multi-select but docs_status is
+                // semantically single-select. If the URL carries multiple
+                // values (comma-separated), honor the first one.
+                $first = is_array($value) ? ($value[0] ?? '') : explode(',', (string) $value)[0];
+                $this->applyDocsStatusFilter($query, $first);
+            }),
+            AllowedFilter::callback('soat_expired', fn (Builder $query, $value) => $this->applyDocumentExpiredFilter($query, 'soat_due_at', $value)),
+            AllowedFilter::callback('rtm_expired', fn (Builder $query, $value) => $this->applyDocumentExpiredFilter($query, 'rtm_due_at', $value)),
+            AllowedFilter::callback('operation_card_expired', fn (Builder $query, $value) => $this->applyDocumentExpiredFilter($query, 'operation_card_due_at', $value)),
+        ];
     }
 
     /**
      * Reference data shared by the vehicle create/edit modal — provider
      * third parties and municipalities (with department for grouping).
      *
-     * @return array{thirdParties: \Illuminate\Database\Eloquent\Collection<int, ThirdParty>, municipalities: \Illuminate\Database\Eloquent\Collection<int, Municipality>}
+     * @return array{thirdParties: Collection<int, ThirdParty>, municipalities: Collection<int, Municipality>}
      */
     private function modalOptions(): array
     {
@@ -92,6 +112,9 @@ class VehicleController extends Controller
                 ->with('department:id,name')
                 ->orderBy('name')
                 ->get(['id', 'name', 'code', 'department_id']),
+            'vehicleTypes' => VehicleType::query()
+                ->activeOrdered()
+                ->get(['id', 'code', 'name']),
         ];
     }
 
@@ -177,6 +200,7 @@ class VehicleController extends Controller
         Gate::authorize(Permission::VIEW_VEHICLES->value);
 
         $vehicle->load([
+            'vehicleType:id,code,name',
             'municipality:id,name,department_id',
             'municipality.department:id,name',
             'thirdParty:id,company_name,first_name,first_lastname,is_natural_person,identification_number',

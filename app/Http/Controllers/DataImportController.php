@@ -46,6 +46,12 @@ class DataImportController extends Controller
                 'value' => $t->value,
                 'label' => $t->label(),
             ])->all(),
+            // Valid vehicle type codes for the inline hint shown when the
+            // user picks the "Vehículos" import (the catalog is dynamic).
+            'vehicleTypeCodes' => \App\Models\VehicleType::query()
+                ->activeOrdered()
+                ->pluck('code')
+                ->all(),
         ]);
     }
 

@@ -1,6 +1,13 @@
 import { MapPin } from 'lucide-react';
+import { memo, useMemo } from 'react';
+import { MapDisabledPlaceholder } from '@/components/map-disabled-placeholder';
+import { StaticMapImage } from '@/components/services/static-map-image';
 import { useAppearance } from '@/hooks/use-appearance';
-import { staticMapUrl, staticRouteMapUrl } from '@/lib/google-maps';
+import {
+    MAPS_ENABLED,
+    staticMapUrl,
+    staticRouteMapUrl,
+} from '@/lib/google-maps';
 import { cn } from '@/lib/utils';
 
 interface RouteStaticMapProps {
@@ -41,8 +48,14 @@ function parseCoordinates(
  * Google Maps Static API preview that frames an entire trip: A/B
  * markers at origin and destination plus the polyline between them.
  * Renders a neutral placeholder when either coordinate is missing.
+ *
+ * The `<img>` is deferred to in-view + client-only via `StaticMapImage`
+ * so it never appears in the SSR HTML (no first-paint fetch, no
+ * SSR-light → hydration-dark double fetch). The URL is memoized so a
+ * parent re-render (polling, partial reloads) doesn't rebuild a
+ * theme-aware string that would otherwise count as a new billed image.
  */
-export default function RouteStaticMap({
+function RouteStaticMapImpl({
     origin,
     destination,
     geometry,
@@ -51,11 +64,52 @@ export default function RouteStaticMap({
     height = 300,
 }: RouteStaticMapProps) {
     const { resolvedAppearance } = useAppearance();
+    const theme = resolvedAppearance === 'dark' ? 'dark' : 'light';
+
     const parsedOrigin = parseCoordinates(origin);
     const parsedDestination = parseCoordinates(destination);
 
-    // Both sides unknown → keep the neutral placeholder so the layout
-    // doesn't shift.
+    // Content key for the geometry array: it arrives as a fresh reference
+    // from Inertia props, so depend on its shape (length + endpoints) — the
+    // only thing that changes the rendered polyline for a given service —
+    // instead of its identity, to keep the memo stable.
+    const geometryKey =
+        geometry && geometry.length
+            ? `${geometry.length}:${geometry[0]?.join(',')}:${geometry[geometry.length - 1]?.join(',')}`
+            : 'none';
+
+    const src = useMemo(() => {
+        if (!MAPS_ENABLED) {
+            return null;
+        }
+        if (!parsedOrigin && !parsedDestination) {
+            return null;
+        }
+        if (!parsedOrigin || !parsedDestination) {
+            const point = parsedOrigin ?? parsedDestination!;
+            return staticMapUrl({
+                lat: point.lat,
+                lng: point.lng,
+                width,
+                height,
+                zoom: 13,
+                theme,
+            });
+        }
+        return staticRouteMapUrl({
+            origin: parsedOrigin,
+            destination: parsedDestination,
+            geometry,
+            theme,
+            width,
+            height,
+        });
+        // parsedOrigin/parsedDestination derive purely from the origin/
+        // destination strings; geometry is captured via geometryKey.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [origin, destination, geometryKey, width, height, theme]);
+
+    // Both sides unknown → neutral placeholder so the layout doesn't shift.
     if (!parsedOrigin && !parsedDestination) {
         return (
             <div
@@ -71,54 +125,37 @@ export default function RouteStaticMap({
         );
     }
 
-    // One side known → drop a single marker on a centered static map.
-    // Better than the empty placeholder when the operator has at least
-    // anchored one end of the trip.
-    if (!parsedOrigin || !parsedDestination) {
-        const point = parsedOrigin ?? parsedDestination!;
-        const altLabel = parsedOrigin
-            ? 'Mapa con el origen del servicio'
-            : 'Mapa con el destino del servicio';
+    // Maps disabled (e.g. local dev) → placeholder instead of a Google call.
+    if (!MAPS_ENABLED || !src) {
         return (
-            <img
-                src={staticMapUrl({
-                    lat: point.lat,
-                    lng: point.lng,
-                    width,
-                    height,
-                    zoom: 13,
-                    theme: resolvedAppearance === 'dark' ? 'dark' : 'light',
-                })}
-                alt={altLabel}
-                width={width}
-                height={height}
-                loading="lazy"
+            <div
                 className={cn(
-                    'h-auto w-full rounded-md border object-cover',
+                    'w-full overflow-hidden rounded-md border',
                     className,
                 )}
-            />
+                style={{ height }}
+            >
+                <MapDisabledPlaceholder />
+            </div>
         );
     }
 
+    const altLabel =
+        !parsedOrigin || !parsedDestination
+            ? parsedOrigin
+                ? 'Mapa con el origen del servicio'
+                : 'Mapa con el destino del servicio'
+            : 'Mapa de la ruta entre el origen y el destino';
+
     return (
-        <img
-            src={staticRouteMapUrl({
-                origin: parsedOrigin,
-                destination: parsedDestination,
-                geometry,
-                theme: resolvedAppearance === 'dark' ? 'dark' : 'light',
-                width,
-                height,
-            })}
-            alt="Mapa de la ruta entre el origen y el destino"
+        <StaticMapImage
+            src={src}
+            alt={altLabel}
             width={width}
             height={height}
-            loading="lazy"
-            className={cn(
-                'h-auto w-full rounded-md border object-cover',
-                className,
-            )}
+            className={className}
         />
     );
 }
+
+export default memo(RouteStaticMapImpl);

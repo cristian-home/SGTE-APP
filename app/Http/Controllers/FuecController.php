@@ -37,11 +37,11 @@ class FuecController extends Controller
                 'service.contract:id,contract_number',
                 'fuecNumberRange:id,resolution_number,resolution_year',
             ])
-            ->allowedFilters([
+            ->allowedFilters(...[
                 AllowedFilter::exact('status'),
                 'consecutive_number',
             ])
-            ->allowedSorts(['consecutive_number', 'generated_at', 'created_at'])
+            ->allowedSorts(...['consecutive_number', 'generated_at', 'created_at'])
             ->defaultSort('-generated_at', '-id')
             ->paginate($request->perPage())
             ->withQueryString();

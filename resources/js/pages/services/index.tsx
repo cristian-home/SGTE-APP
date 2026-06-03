@@ -12,6 +12,7 @@ import { Permission } from '@/enums/Permission';
 import { useServerTable } from '@/hooks/use-server-table';
 import AppLayout from '@/layouts/app-layout';
 import { viewerToday } from '@/lib/datetime';
+import { type FacetCounts, withCounts } from '@/lib/facet-filter';
 import services from '@/routes/services';
 import { columns } from './columns';
 
@@ -124,12 +125,14 @@ export default function ServicesIndex({
     filterDrivers,
     filterVehicles,
     filterMunicipalities,
+    facetCounts,
 }: {
     services: PaginatedData<Service>;
     filterContracts: ContractFilterOption[];
     filterDrivers: DriverFilterOption[];
     filterVehicles: VehicleOption[];
     filterMunicipalities: MunicipalityOption[];
+    facetCounts: FacetCounts;
 }) {
     'use no memo';
     const {
@@ -162,47 +165,73 @@ export default function ServicesIndex({
             {
                 name: 'contract_id',
                 label: 'Contrato',
-                options: filterContracts.map((c) => ({
-                    value: String(c.id),
-                    label: contractFilterLabel(c),
-                })),
+                options: withCounts(
+                    filterContracts.map((c) => ({
+                        value: String(c.id),
+                        label: contractFilterLabel(c),
+                    })),
+                    facetCounts.contract_id,
+                ),
+                sectioned: true,
             },
             {
                 name: 'driver_id',
                 label: 'Conductor',
-                options: filterDrivers.map((d) => ({
-                    value: String(d.id),
-                    label: driverFilterLabel(d),
-                })),
+                options: withCounts(
+                    filterDrivers.map((d) => ({
+                        value: String(d.id),
+                        label: driverFilterLabel(d),
+                    })),
+                    facetCounts.driver_id,
+                ),
+                sectioned: true,
             },
             {
                 name: 'vehicle_id',
                 label: 'Vehículo',
-                options: filterVehicles.map((v) => ({
-                    value: String(v.id),
-                    label: vehicleFilterLabel(v),
-                })),
+                options: withCounts(
+                    filterVehicles.map((v) => ({
+                        value: String(v.id),
+                        label: vehicleFilterLabel(v),
+                    })),
+                    facetCounts.vehicle_id,
+                ),
+                sectioned: true,
             },
             {
                 name: 'origin_municipality_id',
                 label: 'Ciudad Origen',
-                options: filterMunicipalities.map((m) => ({
-                    value: String(m.id),
-                    label: municipalityFilterLabel(m),
-                })),
+                options: withCounts(
+                    filterMunicipalities.map((m) => ({
+                        value: String(m.id),
+                        label: municipalityFilterLabel(m),
+                    })),
+                    facetCounts.origin_municipality_id,
+                ),
                 capitalizeOptions: true,
+                sectioned: true,
             },
             {
                 name: 'destination_municipality_id',
                 label: 'Ciudad Destino',
-                options: filterMunicipalities.map((m) => ({
-                    value: String(m.id),
-                    label: municipalityFilterLabel(m),
-                })),
+                options: withCounts(
+                    filterMunicipalities.map((m) => ({
+                        value: String(m.id),
+                        label: municipalityFilterLabel(m),
+                    })),
+                    facetCounts.destination_municipality_id,
+                ),
                 capitalizeOptions: true,
+                sectioned: true,
             },
         ],
-        [filterContracts, filterDrivers, filterVehicles, filterMunicipalities],
+        [
+            filterContracts,
+            filterDrivers,
+            filterVehicles,
+            filterMunicipalities,
+            facetCounts,
+        ],
     );
 
     const dateFrom = activeFilters['date_from']?.[0] ?? '';

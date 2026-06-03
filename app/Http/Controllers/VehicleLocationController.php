@@ -29,7 +29,7 @@ class VehicleLocationController extends Controller
                 'service:id,service_date_local,planned_start_at,timezone',
                 'capturedBy:id,name',
             ])
-            ->allowedFilters([
+            ->allowedFilters(...[
                 AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
                 AllowedFilter::exact('vehicle_id'),
                 AllowedFilter::exact('is_manual'),
@@ -48,7 +48,7 @@ class VehicleLocationController extends Controller
                     $query->whereDate('recorded_at', '<=', $value);
                 }),
             ])
-            ->allowedSorts(['recorded_at', 'vehicle_id', 'created_at'])
+            ->allowedSorts(...['recorded_at', 'vehicle_id', 'created_at'])
             ->defaultSort('-recorded_at', '-id')
             ->paginate($request->perPage())
             ->withQueryString();
