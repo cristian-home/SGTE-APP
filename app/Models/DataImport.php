@@ -5,15 +5,16 @@ namespace App\Models;
 use App\Concerns\HasTimezone;
 use App\Enums\DataImportStatus;
 use App\Enums\DataImportType;
+use Database\Factories\DataImportFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Spatie\Activitylog\LogOptions;
-use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 class DataImport extends Model
 {
-    /** @use HasFactory<\Database\Factories\DataImportFactory> */
+    /** @use HasFactory<DataImportFactory> */
     use HasFactory, HasTimezone, LogsActivity;
 
     /**

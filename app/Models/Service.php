@@ -5,8 +5,10 @@ namespace App\Models;
 use App\Concerns\HasTimezone;
 use App\Enums\PaymentMethod;
 use App\Enums\ServiceStatus;
+use App\Jobs\FetchServiceRoute;
 use App\Support\SearchField;
 use App\Support\Tz;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,8 +18,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Spatie\Activitylog\LogOptions;
-use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 class Service extends Model
 {
@@ -205,7 +207,7 @@ class Service extends Model
             if (empty($service->origin_coordinates) || empty($service->destination_coordinates)) {
                 return;
             }
-            \App\Jobs\FetchServiceRoute::dispatch($service);
+            FetchServiceRoute::dispatch($service);
         });
 
         static::updated(function (Service $service): void {
@@ -215,7 +217,7 @@ class Service extends Model
             if (empty($service->origin_coordinates) || empty($service->destination_coordinates)) {
                 return;
             }
-            \App\Jobs\FetchServiceRoute::dispatch($service);
+            FetchServiceRoute::dispatch($service);
         });
     }
 
@@ -331,7 +333,7 @@ class Service extends Model
             }
 
             try {
-                $existing = \Carbon\CarbonImmutable::parse($this->attributes[$col])->setTimezone($tz);
+                $existing = CarbonImmutable::parse($this->attributes[$col])->setTimezone($tz);
                 $shifted = $existing->setDate(
                     (int) substr($date, 0, 4),
                     (int) substr($date, 5, 2),
@@ -385,7 +387,7 @@ class Service extends Model
      * model's timezone and (date_override or service_date_local). Returns
      * null when value is empty.
      */
-    protected function wallClockToInstant(mixed $value, ?string $dateOverride = null): ?\Carbon\CarbonImmutable
+    protected function wallClockToInstant(mixed $value, ?string $dateOverride = null): ?CarbonImmutable
     {
         if ($value === null || $value === '') {
             return null;
@@ -400,7 +402,7 @@ class Service extends Model
             ?? Carbon::now($this->resolveTimezone())->toDateString();
 
         try {
-            return \Carbon\CarbonImmutable::createFromFormat('Y-m-d H:i', "{$date} {$time}", $this->resolveTimezone());
+            return CarbonImmutable::createFromFormat('Y-m-d H:i', "{$date} {$time}", $this->resolveTimezone());
         } catch (\Exception) {
             return null;
         }
