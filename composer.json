@@ -29,6 +29,7 @@
         "spatie/laravel-permission": "^8.0",
         "spatie/laravel-query-builder": "^7.0",
         "spatie/simple-excel": "^3.9",
+        "symfony/http-foundation": "~8.0.0",
         "typesense/typesense-php": "^6.0"
     },
     "require-dev": {
