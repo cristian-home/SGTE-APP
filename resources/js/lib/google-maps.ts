@@ -101,6 +101,54 @@ interface LatLng {
     lng: number;
 }
 
+interface StaticVehiclesMapOptions {
+    /** One pin per active vehicle. */
+    vehicles: LatLng[];
+    width?: number;
+    height?: number;
+    scale?: number;
+    theme?: 'light' | 'dark';
+}
+
+/**
+ * Build a Maps Static API URL with one red pin per active vehicle.
+ *
+ * Used by the dashboard "Vehículos activos" card, which renders a static
+ * image instead of the interactive (billed-per-load) Dynamic Maps JS API.
+ * With two or more pins the Static API auto-frames them (no `center`/`zoom`
+ * needed); with a single pin we center + zoom so it isn't framed at world
+ * scale. All positions share one `markers` style param to keep the URL
+ * compact (a handful of fleet vehicles stays far under the ~8 KB cap).
+ */
+export function staticVehiclesMapUrl({
+    vehicles,
+    width = 600,
+    height = 280,
+    scale = 2,
+    theme = 'light',
+}: StaticVehiclesMapOptions): string {
+    const params = new URLSearchParams();
+    params.append('size', `${width}x${height}`);
+    params.append('scale', String(scale));
+
+    if (vehicles.length === 1) {
+        params.append('center', `${vehicles[0].lat},${vehicles[0].lng}`);
+        params.append('zoom', '14');
+    }
+
+    const positions = vehicles.map((v) => `${v.lat},${v.lng}`).join('|');
+    params.append('markers', `color:red|${positions}`);
+
+    if (theme === 'dark') {
+        for (const rule of DARK_MAP_STYLE) {
+            params.append('style', rule);
+        }
+    }
+
+    params.append('key', GOOGLE_MAPS_BROWSER_KEY);
+    return `https://maps.googleapis.com/maps/api/staticmap?${params.toString()}`;
+}
+
 interface StaticRouteMapOptions {
     origin: LatLng;
     destination: LatLng;

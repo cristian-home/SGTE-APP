@@ -1,31 +1,16 @@
-/// <reference types="google.maps" />
-
 import { Link, router } from '@inertiajs/react';
-import {
-    AdvancedMarker,
-    APIProvider,
-    Map as GoogleMap,
-    Pin,
-    useMap,
-} from '@vis.gl/react-google-maps';
 import { MapPin } from 'lucide-react';
-import { useEffect } from 'react';
-import { ErrorBoundary } from '@/components/error-boundary';
+import { useEffect, useMemo } from 'react';
 import { MapDisabledPlaceholder } from '@/components/map-disabled-placeholder';
-import { MapUnavailable } from '@/components/map-unavailable';
+import { StaticMapImage } from '@/components/services/static-map-image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAppearance } from '@/hooks/use-appearance';
-import { useInViewMount } from '@/hooks/use-in-view-mount';
-import {
-    GOOGLE_MAPS_BROWSER_KEY,
-    GOOGLE_MAPS_MAP_ID,
-    MAPS_ENABLED,
-    MEDELLIN_CENTER,
-    MEDELLIN_ZOOM,
-} from '@/lib/google-maps';
+import { MAPS_ENABLED, staticVehiclesMapUrl } from '@/lib/google-maps';
 
 const REFRESH_INTERVAL_MS = 60_000;
+const MAP_WIDTH = 600;
+const MAP_HEIGHT = 280;
 
 export type DashboardActiveVehicle = {
     vehicle_plate: string;
@@ -38,12 +23,17 @@ export type DashboardActiveVehicle = {
 };
 
 /**
- * Mini live-map for the dashboard. Shows one marker per vehicle with
- * an open service today (data from DashboardController::buildActiveVehicles
- * via App\Support\VehicleLocationResolver). Polls every 60s (faster
- * than the full /gps/map's 300s — dashboard is the "quick glance"
- * surface). Click marker → service detail; "Ver mapa completo" → full
- * GPS map.
+ * Mini map for the dashboard showing one pin per vehicle with an open
+ * service today (data from DashboardController::buildActiveVehicles via
+ * App\Support\VehicleLocationResolver).
+ *
+ * Rendered as a Google Maps **Static** image — NOT the interactive Dynamic
+ * Maps JS API — so the dashboard "quick glance" never triggers a billed Map
+ * Load. The `<img>` is deferred to in-view + client-only via StaticMapImage.
+ * Data still refreshes every 60s; when a vehicle moves, the memoized URL
+ * changes and a new (cheap) static image is fetched. Interactivity
+ * (click-through to a service, pan/zoom) lives on the full /gps/map, linked
+ * from the header.
  */
 export function LiveVehiclesMap({
     vehicles,
@@ -53,11 +43,7 @@ export function LiveVehiclesMap({
     className?: string;
 }) {
     const { resolvedAppearance } = useAppearance();
-    // Mount the dynamic map only once it scrolls into view — avoids a
-    // billed Map Load on every dashboard visit when the user may never
-    // look at it. (Also keeps the mount out of the Inertia swap flushSync,
-    // so the ErrorBoundary still catches a Google Maps crash.)
-    const { ref: mapRef, inView: mapReady } = useInViewMount<HTMLDivElement>();
+    const theme = resolvedAppearance === 'dark' ? 'dark' : 'light';
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -68,6 +54,21 @@ export function LiveVehiclesMap({
         }, REFRESH_INTERVAL_MS);
         return () => clearInterval(interval);
     }, []);
+
+    const src = useMemo(() => {
+        if (!MAPS_ENABLED || vehicles.length === 0) {
+            return null;
+        }
+        return staticVehiclesMapUrl({
+            vehicles: vehicles.map((v) => ({
+                lat: v.location.lat,
+                lng: v.location.lng,
+            })),
+            width: MAP_WIDTH,
+            height: MAP_HEIGHT,
+            theme,
+        });
+    }, [vehicles, theme]);
 
     return (
         <Card className={className}>
@@ -90,88 +91,22 @@ export function LiveVehiclesMap({
                     <p className="py-8 text-center text-sm text-muted-foreground">
                         Sin ubicaciones recientes.
                     </p>
-                ) : (
+                ) : !MAPS_ENABLED || !src ? (
                     <div
-                        ref={mapRef}
-                        className="h-70 w-full overflow-hidden rounded-md border"
+                        className="w-full overflow-hidden rounded-md border"
+                        style={{ height: MAP_HEIGHT }}
                     >
-                        <ErrorBoundary
-                            fallback={({ reset }) => (
-                                <MapUnavailable reset={reset} />
-                            )}
-                        >
-                            {!MAPS_ENABLED ? (
-                                <MapDisabledPlaceholder />
-                            ) : !mapReady ? (
-                                <div className="size-full animate-pulse bg-muted/30" />
-                            ) : (
-                                <APIProvider apiKey={GOOGLE_MAPS_BROWSER_KEY}>
-                                    <GoogleMap
-                                        mapId={GOOGLE_MAPS_MAP_ID}
-                                        defaultCenter={MEDELLIN_CENTER}
-                                        defaultZoom={MEDELLIN_ZOOM}
-                                        gestureHandling="cooperative"
-                                        disableDefaultUI
-                                        colorScheme={
-                                            resolvedAppearance === 'dark'
-                                                ? 'DARK'
-                                                : 'LIGHT'
-                                        }
-                                    >
-                                        <FitVehicleBounds vehicles={vehicles} />
-                                        {vehicles.map((vehicle) => (
-                                            <AdvancedMarker
-                                                key={vehicle.service_id}
-                                                position={{
-                                                    lat: vehicle.location.lat,
-                                                    lng: vehicle.location.lng,
-                                                }}
-                                                title={vehicle.vehicle_plate}
-                                                onClick={() =>
-                                                    router.visit(
-                                                        `/services/${vehicle.service_id}`,
-                                                    )
-                                                }
-                                            >
-                                                <Pin
-                                                    background="var(--primary)"
-                                                    borderColor="var(--primary)"
-                                                    glyphColor="var(--primary-foreground)"
-                                                />
-                                            </AdvancedMarker>
-                                        ))}
-                                    </GoogleMap>
-                                </APIProvider>
-                            )}
-                        </ErrorBoundary>
+                        <MapDisabledPlaceholder />
                     </div>
+                ) : (
+                    <StaticMapImage
+                        src={src}
+                        alt={`Mapa con ${vehicles.length} vehículo(s) activo(s)`}
+                        width={MAP_WIDTH}
+                        height={MAP_HEIGHT}
+                    />
                 )}
             </CardContent>
         </Card>
     );
-}
-
-function FitVehicleBounds({
-    vehicles,
-}: {
-    vehicles: DashboardActiveVehicle[];
-}) {
-    const map = useMap();
-    useEffect(() => {
-        if (!map || vehicles.length === 0) return;
-        if (vehicles.length === 1) {
-            map.panTo({
-                lat: vehicles[0].location.lat,
-                lng: vehicles[0].location.lng,
-            });
-            map.setZoom(14);
-            return;
-        }
-        const bounds = new google.maps.LatLngBounds();
-        for (const v of vehicles) {
-            bounds.extend({ lat: v.location.lat, lng: v.location.lng });
-        }
-        map.fitBounds(bounds, 48);
-    }, [map, vehicles]);
-    return null;
 }
