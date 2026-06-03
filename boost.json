@@ -3,20 +3,22 @@
         "claude_code",
         "copilot"
     ],
+    "cloud": false,
     "guidelines": true,
     "herd_mcp": false,
     "mcp": true,
     "nightwatch_mcp": false,
-    "packages": [
-        "laravel/fortify"
-    ],
     "sail": false,
     "skills": [
+        "fortify-development",
+        "laravel-best-practices",
+        "configuring-horizon",
+        "scout-development",
         "wayfinder-development",
         "pest-testing",
         "inertia-react-development",
         "tailwindcss-development",
-        "echo-development",
-        "developing-with-fortify"
+        "echo-react-development",
+        "echo-development"
     ]
 }
