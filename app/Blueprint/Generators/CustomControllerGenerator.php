@@ -127,8 +127,8 @@ class CustomControllerGenerator extends ControllerGenerator
         $operation = $paginate ? 'paginate' : 'get';
 
         return $linePrefix.$assignment."QueryBuilder::for({$modelClass}::class)"
-            .$linePrefix.'    ->allowedFilters([])'
-            .$linePrefix.'    ->allowedSorts([])'
+            .$linePrefix.'    ->allowedFilters(...[])'
+            .$linePrefix.'    ->allowedSorts(...[])'
             .$linePrefix."    ->{$operation}();";
     }
 

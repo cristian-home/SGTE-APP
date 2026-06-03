@@ -15,6 +15,7 @@ use App\Support\FacetCounts;
 use App\Support\Tz;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -43,8 +44,8 @@ class ContractController extends Controller
                 'thirdParty:id,document_type_id,identification_number,is_natural_person,first_name,first_lastname,company_name,is_customer,is_provider',
                 'thirdParty.documentType:id,code,name',
             ])
-            ->allowedFilters($this->allowedFilters())
-            ->allowedSorts(['contract_number', 'start_at', 'end_at', 'created_at'])
+            ->allowedFilters(...$this->allowedFilters())
+            ->allowedSorts(...['contract_number', 'start_at', 'end_at', 'created_at'])
             ->defaultSort('-created_at')
             ->paginate($request->perPage())
             ->withQueryString();
@@ -91,7 +92,7 @@ class ContractController extends Controller
      * third parties for the Cliente combobox, plus document types and
      * municipalities for the nested "crear cliente" dialog.
      *
-     * @return array{thirdParties: \Illuminate\Database\Eloquent\Collection<int, ThirdParty>, documentTypes: \Illuminate\Database\Eloquent\Collection<int, DocumentType>, municipalities: \Illuminate\Database\Eloquent\Collection<int, Municipality>}
+     * @return array{thirdParties: Collection<int, ThirdParty>, documentTypes: Collection<int, DocumentType>, municipalities: Collection<int, Municipality>}
      */
     private function modalReferenceData(): array
     {
@@ -149,7 +150,7 @@ class ContractController extends Controller
      * true` third parties with the minimum fields the
      * `<ThirdPartyCombobox />` needs.
      */
-    private function customerOptions(): \Illuminate\Database\Eloquent\Collection
+    private function customerOptions(): Collection
     {
         return ThirdParty::query()
             ->where('is_customer', true)

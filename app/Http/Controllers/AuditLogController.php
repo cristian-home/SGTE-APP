@@ -73,7 +73,7 @@ class AuditLogController extends Controller
 
         $activities = QueryBuilder::for(Activity::class)
             ->with(['causer:id,name,email'])
-            ->allowedFilters([
+            ->allowedFilters(...[
                 AllowedFilter::callback('search', function (Builder $query, $value): void {
                     $value = is_array($value) ? ($value[0] ?? '') : (string) $value;
                     if ($value === '') {
@@ -104,7 +104,7 @@ class AuditLogController extends Controller
                     $query->whereDate('created_at', '<=', $value);
                 }),
             ])
-            ->allowedSorts(['created_at', 'log_name', 'event'])
+            ->allowedSorts(...['created_at', 'log_name', 'event'])
             ->defaultSort('-created_at', '-id')
             ->paginate($request->perPage())
             ->withQueryString()

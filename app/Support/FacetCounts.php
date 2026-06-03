@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Spatie\QueryBuilder\QueryBuilder;
@@ -19,10 +20,10 @@ use Spatie\QueryBuilder\QueryBuilder;
 class FacetCounts
 {
     /**
-     * @param  class-string<\Illuminate\Database\Eloquent\Model>  $model
+     * @param  class-string<Model>  $model
      * @param  array<int, mixed>  $allowedFilters  the controller's allowedFilters() definition (shared with index())
      * @param  array<string, string>  $facets  filter name => groupable DB column
-     * @return array<string, array<string, int>>  filter name => [value => count]
+     * @return array<string, array<string, int>> filter name => [value => count]
      */
     public static function for(string $model, array $allowedFilters, Request $request, array $facets): array
     {
@@ -36,7 +37,7 @@ class FacetCounts
             $facetRequest->query->set('filter', Arr::except($filter, $name));
 
             $counts = QueryBuilder::for($model::query(), $facetRequest)
-                ->allowedFilters($allowedFilters)
+                ->allowedFilters(...$allowedFilters)
                 ->reorder()
                 ->select($column)
                 ->selectRaw('count(*) as aggregate')

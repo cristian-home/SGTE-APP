@@ -12,6 +12,7 @@ use App\Models\ServiceIncident;
 use App\Models\User;
 use App\Notifications\BillingIncidentNotification;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -38,7 +39,7 @@ class ServiceIncidentController extends Controller
         Gate::authorize(Permission::VIEW_INCIDENTS->value);
 
         $baseQuery = QueryBuilder::for(ServiceIncident::class)
-            ->allowedFilters([
+            ->allowedFilters(...[
                 AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
                 AllowedFilter::exact('service_id'),
                 AllowedFilter::exact('incident_type_id'),
@@ -52,7 +53,7 @@ class ServiceIncidentController extends Controller
                     $query->whereHas('incidentType', fn (Builder $q) => $q->where('severity', $first));
                 }),
             ])
-            ->allowedSorts(['reported_at', 'service_id', 'incident_type_id'])
+            ->allowedSorts(...['reported_at', 'service_id', 'incident_type_id'])
             ->defaultSort('-reported_at');
 
         // Sum the `additional_value` of billing-affecting incidents that
@@ -102,9 +103,9 @@ class ServiceIncidentController extends Controller
      * hits /service-incidents/create without a ?service_id= query
      * param — otherwise the form skips the picker entirely.
      *
-     * @return \Illuminate\Database\Eloquent\Collection<int, Service>
+     * @return Collection<int, Service>
      */
-    private function recentServiceOptions(): \Illuminate\Database\Eloquent\Collection
+    private function recentServiceOptions(): Collection
     {
         $cutoff = Carbon::now((string) config('app.operation_tz'))->subDays(self::RECENT_SERVICES_WINDOW_DAYS)->toDateString();
 

@@ -24,13 +24,13 @@ class VehicleTypeController extends Controller
 
         $vehicleTypes = QueryBuilder::for(VehicleType::class)
             ->withCount('vehicles')
-            ->allowedFilters([
+            ->allowedFilters(...[
                 AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
                 'code',
                 'name',
                 AllowedFilter::exact('active'),
             ])
-            ->allowedSorts(['code', 'name', 'sort_order', 'active'])
+            ->allowedSorts(...['code', 'name', 'sort_order', 'active'])
             ->defaultSort('sort_order')
             ->get();
 
