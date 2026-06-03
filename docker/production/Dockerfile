@@ -14,6 +14,11 @@ RUN composer install --no-dev --no-scripts --no-interaction --prefer-dist --opti
 FROM dunglas/frankenphp:1-php8.5-trixie AS base
 
 # Install PHP extensions
+# NOTE: `msgpack` removed — PECL has no PHP 8.5-compatible release
+# ("No releases available for pecl.php.net/msgpack"), which broke the base
+# image build once the moving frankenphp:1-php8.5-trixie tag advanced. The
+# app does not require ext-msgpack (no composer constraint, no serializer
+# config); igbinary covers fast serialization.
 RUN install-php-extensions \
     pcntl \
     pgsql \
@@ -27,7 +32,6 @@ RUN install-php-extensions \
     xml \
     curl \
     igbinary \
-    msgpack \
     imagick \
     exif
 
