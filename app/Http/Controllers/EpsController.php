@@ -22,12 +22,12 @@ class EpsController extends Controller
         Gate::authorize(Permission::MANAGE_CATALOGS->value);
 
         $eps = QueryBuilder::for(Eps::class)
-            ->allowedFilters([
+            ->allowedFilters(...[
                 AllowedFilter::callback('search', fn (Builder $query, $value) => $query->searchWithRelevance($value)),
                 'code',
                 'name',
             ])
-            ->allowedSorts(['code', 'name'])
+            ->allowedSorts(...['code', 'name'])
             ->get();
 
         return Inertia::render('eps/index', [

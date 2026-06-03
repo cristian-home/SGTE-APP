@@ -11,9 +11,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 use Laravel\Scout\Searchable;
-use Spatie\Activitylog\LogOptions;
-use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 class Invoice extends Model
 {
@@ -105,7 +106,7 @@ class Invoice extends Model
      */
     public static function nextInvoiceNumber(?int $year = null): string
     {
-        $year ??= (int) \Illuminate\Support\Carbon::now(\App\Support\Tz::operation())->format('Y');
+        $year ??= (int) Carbon::now(Tz::operation())->format('Y');
         $sequence = static::query()
             ->where('invoice_number', 'like', "FAC-%-{$year}")
             ->count() + 1;

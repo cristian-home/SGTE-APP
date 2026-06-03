@@ -18,6 +18,7 @@ use App\Models\User;
 use App\Notifications\DriverAccountInvitationNotification;
 use App\Support\FacetCounts;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -52,8 +53,8 @@ class DriverController extends Controller
                 'documentType:id,code',
                 'user:id,name,email',
             ])
-            ->allowedFilters($this->allowedFilters())
-            ->allowedSorts(['first_name', 'first_lastname', 'municipality_id', 'license_due_at', 'active'])
+            ->allowedFilters(...$this->allowedFilters())
+            ->allowedSorts(...['first_name', 'first_lastname', 'municipality_id', 'license_due_at', 'active'])
             ->defaultSort('first_lastname')
             ->paginate($request->perPage())
             ->withQueryString();
@@ -111,7 +112,7 @@ class DriverController extends Controller
      * Shared municipality payload — eager-loads department for the
      * combobox grouping and sorts by name.
      *
-     * @return \Illuminate\Database\Eloquent\Collection<int, Municipality>
+     * @return Collection<int, Municipality>
      */
     /**
      * QueryBuilder filters shared by index() and the facet-count helper.
@@ -139,7 +140,7 @@ class DriverController extends Controller
         ];
     }
 
-    private function municipalitiesPayload(): \Illuminate\Database\Eloquent\Collection
+    private function municipalitiesPayload(): Collection
     {
         return Municipality::query()
             ->with('department:id,name')

@@ -39,8 +39,8 @@ class CustomModelGenerator extends ModelGenerator
     protected function addActivityLogTraits(string $stub, Model $model): string
     {
         $stub = $this->insertUses($stub, [
-            'Spatie\Activitylog\Traits\LogsActivity',
-            'Spatie\Activitylog\LogOptions',
+            'Spatie\Activitylog\Models\Concerns\LogsActivity',
+            'Spatie\Activitylog\Support\LogOptions',
         ]);
 
         // Add trait to class

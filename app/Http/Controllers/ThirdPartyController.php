@@ -12,6 +12,7 @@ use App\Models\ThirdParty;
 use App\Models\Vehicle;
 use App\Support\FacetCounts;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -33,8 +34,8 @@ class ThirdPartyController extends Controller
                 'municipality.department:id,name',
                 'documentType:id,code,name',
             ])
-            ->allowedFilters($this->allowedFilters())
-            ->allowedSorts(['first_name', 'first_lastname', 'company_name', 'municipality_id', 'active'])
+            ->allowedFilters(...$this->allowedFilters())
+            ->allowedSorts(...['first_name', 'first_lastname', 'company_name', 'municipality_id', 'active'])
             ->defaultSort('id')
             ->paginate($request->perPage())
             ->withQueryString();
@@ -81,9 +82,9 @@ class ThirdPartyController extends Controller
      * Shared municipality payload — eager-loads department for the
      * combobox grouping and sorts by name.
      *
-     * @return \Illuminate\Database\Eloquent\Collection<int, Municipality>
+     * @return Collection<int, Municipality>
      */
-    private function municipalitiesPayload(): \Illuminate\Database\Eloquent\Collection
+    private function municipalitiesPayload(): Collection
     {
         return Municipality::query()
             ->with('department:id,name')

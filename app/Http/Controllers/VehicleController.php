@@ -12,6 +12,7 @@ use App\Models\Vehicle;
 use App\Models\VehicleType;
 use App\Support\FacetCounts;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -42,8 +43,8 @@ class VehicleController extends Controller
                 'municipality:id,name,department_id',
                 'municipality.department:id,name',
             ])
-            ->allowedFilters($this->allowedFilters())
-            ->allowedSorts(['internal_code', 'plate', 'model_year', 'municipality_id', 'status'])
+            ->allowedFilters(...$this->allowedFilters())
+            ->allowedSorts(...['internal_code', 'plate', 'model_year', 'municipality_id', 'status'])
             ->defaultSort('plate')
             ->paginate($request->perPage())
             ->withQueryString();
@@ -98,7 +99,7 @@ class VehicleController extends Controller
      * Reference data shared by the vehicle create/edit modal — provider
      * third parties and municipalities (with department for grouping).
      *
-     * @return array{thirdParties: \Illuminate\Database\Eloquent\Collection<int, ThirdParty>, municipalities: \Illuminate\Database\Eloquent\Collection<int, Municipality>}
+     * @return array{thirdParties: Collection<int, ThirdParty>, municipalities: Collection<int, Municipality>}
      */
     private function modalOptions(): array
     {

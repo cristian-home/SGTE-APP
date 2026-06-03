@@ -6,7 +6,7 @@ use App\Blueprint\Generators\CustomModelGenerator;
 
 function makeGeneratorWithoutConstructor(string $class, array $properties = []): object
 {
-    $reflection = new \ReflectionClass($class);
+    $reflection = new ReflectionClass($class);
     $instance = $reflection->newInstanceWithoutConstructor();
 
     foreach ($properties as $name => $value) {
@@ -20,7 +20,7 @@ function makeGeneratorWithoutConstructor(string $class, array $properties = []):
             throw new RuntimeException("Property [{$name}] does not exist in [{$class}] hierarchy.");
         }
 
-        $setter = \Closure::bind(function (string $propertyName, mixed $propertyValue): void {
+        $setter = Closure::bind(function (string $propertyName, mixed $propertyValue): void {
             $this->{$propertyName} = $propertyValue;
         }, $instance, $className);
 
@@ -42,7 +42,7 @@ function callProtected(object $instance, string $method, array $arguments = []):
         throw new RuntimeException("Method [{$method}] does not exist in [".get_class($instance).'] hierarchy.');
     }
 
-    $caller = \Closure::bind(function (string $methodName, array $methodArguments): mixed {
+    $caller = Closure::bind(function (string $methodName, array $methodArguments): mixed {
         return $this->{$methodName}(...$methodArguments);
     }, $instance, $className);
 
@@ -81,8 +81,8 @@ PHP;
     $result = callProtected($generator, 'replaceModelCollectionQueries', [$stub, 'Post']);
 
     expect($result)->toContain('$posts = QueryBuilder::for(Post::class)')
-        ->toContain('->allowedFilters([])')
-        ->toContain('->allowedSorts([])')
+        ->toContain('->allowedFilters(...[])')
+        ->toContain('->allowedSorts(...[])')
         ->toContain('->get();')
         ->toContain('$comments = Comment::all();');
 });

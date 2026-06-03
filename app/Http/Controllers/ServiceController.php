@@ -5,23 +5,31 @@ namespace App\Http\Controllers;
 use App\Enums\DayStatusEnum;
 use App\Enums\Permission;
 use App\Enums\Role;
+use App\Enums\ServiceStatus;
 use App\Enums\VehicleStatus;
 use App\Http\Requests\ServiceStoreRequest;
 use App\Http\Requests\ServiceUpdateRequest;
 use App\Models\Contract;
 use App\Models\DayStatus;
+use App\Models\DocumentType;
 use App\Models\Driver;
 use App\Models\Municipality;
 use App\Models\Service;
+use App\Models\ServiceIncident;
 use App\Models\ThirdParty;
 use App\Models\Vehicle;
 use App\Notifications\ServiceAssignedNotification;
+use App\Services\Google\RoutesClient;
+use App\Support\CuratedRoutes;
 use App\Support\FacetCounts;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -36,9 +44,9 @@ class ServiceController extends Controller
 
         $services = QueryBuilder::for(Service::class)
             ->with(['contract', 'vehicle', 'driver'])
-            ->allowedIncludes(['invoice'])
-            ->allowedFilters($this->allowedFilters())
-            ->allowedSorts([
+            ->allowedIncludes(...['invoice'])
+            ->allowedFilters(...$this->allowedFilters())
+            ->allowedSorts(...[
                 'service_number',
                 'service_date_local',
                 'unit_value',
@@ -123,7 +131,7 @@ class ServiceController extends Controller
         $origin = trim((string) $validated['origin_coordinates']);
         $destination = trim((string) $validated['destination_coordinates']);
 
-        $curated = \App\Support\CuratedRoutes::forCoords($origin, $destination);
+        $curated = CuratedRoutes::forCoords($origin, $destination);
         if ($curated !== null) {
             return response()->json([
                 'eta_minutes' => (int) round($curated['duration_s'] / 60),
@@ -132,15 +140,15 @@ class ServiceController extends Controller
         }
 
         $cacheKey = 'eta:'.$origin.'>'.$destination;
-        $cache = \Illuminate\Support\Facades\Cache::store();
+        $cache = Cache::store();
 
         $live = $cache->get($cacheKey);
         if (! is_array($live)) {
             [$originLat, $originLng] = array_map('floatval', explode(',', $origin));
             [$destLat, $destLng] = array_map('floatval', explode(',', $destination));
 
-            /** @var \App\Services\Google\RoutesClient $client */
-            $client = app(\App\Services\Google\RoutesClient::class);
+            /** @var RoutesClient $client */
+            $client = app(RoutesClient::class);
             $live = $client->driving($originLng, $originLat, $destLng, $destLat);
 
             if (is_array($live) && isset($live['duration_s'])) {
@@ -267,7 +275,7 @@ class ServiceController extends Controller
                     'is_customer',
                     'is_provider',
                 ]),
-            'documentTypes' => \App\Models\DocumentType::orderBy('code')->get(['id', 'code', 'name']),
+            'documentTypes' => DocumentType::orderBy('code')->get(['id', 'code', 'name']),
         ]);
     }
 
@@ -335,7 +343,7 @@ class ServiceController extends Controller
                     : Service::reserveNextNumber();
                 $service = Service::create($serviceData);
                 break;
-            } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+            } catch (UniqueConstraintViolationException $e) {
                 $attempts++;
                 $reserved = '';
                 if ($attempts >= 3) {
@@ -418,7 +426,7 @@ class ServiceController extends Controller
         // 5 incidents and pins the ordering. The full serviceIncidents
         // relation on $service still carries everything for any card
         // that needs it.
-        $recentIncidents = \App\Models\ServiceIncident::query()
+        $recentIncidents = ServiceIncident::query()
             ->where('service_id', $service->id)
             ->with([
                 'incidentType:id,name,severity',
@@ -500,7 +508,7 @@ class ServiceController extends Controller
         // REQ-009 reopen invariant: capture before-state so the
         // activity-log entry can name which actual_*_time fields were
         // cleared or set during the status transition.
-        $statusBefore = $service->service_status instanceof \App\Enums\ServiceStatus
+        $statusBefore = $service->service_status instanceof ServiceStatus
             ? $service->service_status->value
             : (string) $service->service_status;
         $actualStartBefore = $service->actual_start_at;
@@ -509,7 +517,7 @@ class ServiceController extends Controller
         $service->update($validated);
         $service->refresh();
 
-        $statusAfter = $service->service_status instanceof \App\Enums\ServiceStatus
+        $statusAfter = $service->service_status instanceof ServiceStatus
             ? $service->service_status->value
             : (string) $service->service_status;
 
@@ -609,7 +617,7 @@ class ServiceController extends Controller
      * tercero (sized to cover the service date) and return its id so the
      * caller can substitute it. Returns null when no bridging is required.
      */
-    private function maybeBridgeToGenericContract(\App\Http\Requests\ServiceStoreRequest $request, array $data): ?int
+    private function maybeBridgeToGenericContract(ServiceStoreRequest $request, array $data): ?int
     {
         if (! $request->boolean('create_generic_contract')) {
             return null;
@@ -621,7 +629,7 @@ class ServiceController extends Controller
         }
 
         $instant = isset($data['planned_start_at'])
-            ? \Carbon\CarbonImmutable::parse($data['planned_start_at'])->utc()
+            ? CarbonImmutable::parse($data['planned_start_at'])->utc()
             : null;
         if ($instant === null) {
             return null;
@@ -640,7 +648,7 @@ class ServiceController extends Controller
             ->count() + 1;
 
         $tz = (string) ($data['timezone'] ?? 'America/Bogota');
-        $startAt = \Carbon\CarbonImmutable::parse($data['service_date_local'].' 00:00:00', $tz)->utc();
+        $startAt = CarbonImmutable::parse($data['service_date_local'].' 00:00:00', $tz)->utc();
         $endAt = $startAt->addDay();
 
         $generic = Contract::create([
