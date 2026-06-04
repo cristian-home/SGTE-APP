@@ -43,5 +43,14 @@
              production code under test. Cross-TZ tests opt into a
              different value via the Tz helper in tests/Helpers. -->
         <env name="OPERATION_TZ" value="UTC"/>
+        <!-- Neutralize the Google Maps keys in tests. Without an empty
+             server key, every Service created in a test (QUEUE_CONNECTION
+             is "sync", so FetchServiceRoute runs inline) would make a real,
+             billable call to the Routes API. force="true" overrides the
+             real keys the Sail container inherits from .env, so
+             RoutesClient::driving() short-circuits to null with zero HTTP.
+             Tests that exercise the route path fake the client explicitly. -->
+        <env name="GOOGLE_MAPS_SERVER_KEY" value="" force="true"/>
+        <env name="GOOGLE_MAPS_BROWSER_KEY" value="" force="true"/>
     </php>
 </phpunit>
